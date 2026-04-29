@@ -486,15 +486,15 @@
         <div class="nav-tabs-container">
             <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
                 <li class="nav-item">
-                    <button class="nav-link active" id="visao-geral-tab"
-                        data-bs-toggle="tab" data-bs-target="#visao-geral">
-                        <i class="material-icons">bar_chart</i>Visão Geral
+                    <button class="nav-link active" id="consulta-empenho-tab"
+                        data-bs-toggle="tab" data-bs-target="#consulta-empenho">
+                        <i class="material-icons">receipt</i>Despesa por Empenho
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" id="consulta-empenho-tab"
-                        data-bs-toggle="tab" data-bs-target="#consulta-empenho">
-                        <i class="material-icons">receipt</i>Consulta por Empenho
+                    <button class="nav-link" id="visao-geral-tab"
+                        data-bs-toggle="tab" data-bs-target="#visao-geral">
+                        <i class="material-icons">bar_chart</i>Despesa por Órgão
                     </button>
                 </li>
                 <li class="nav-item">
@@ -516,11 +516,11 @@
 
         <!-- Conteúdo das abas -->
         <div class="tab-content" id="dashboardTabsContent">
-            <div class="tab-pane fade show active" id="visao-geral" role="tabpanel">
-                <div id="visao-geral-content"></div>
-            </div>
-            <div class="tab-pane fade" id="consulta-empenho" role="tabpanel">
+            <div class="tab-pane fade show active" id="consulta-empenho" role="tabpanel">
                 <div id="consulta-empenho-content"></div>
+            </div>
+            <div class="tab-pane fade" id="visao-geral" role="tabpanel">
+                <div id="visao-geral-content"></div>
             </div>
             <div class="tab-pane fade" id="downloads" role="tabpanel">
                 <div id="downloads-content"></div>
@@ -599,8 +599,6 @@ let colunasVisiveisConsulta = {
     licitacao_descricao_da_modalidade: true,
     numero_processo_compra_siad: true,
     _lic_numero_contrato: true,
-    _lic_link_processo: true,
-    _lic_link_contrato: true,
     objeto_processo: true,
     elemento_despesa_codigo: true,
     elemento_despesa_descricao: true,
@@ -616,17 +614,15 @@ const colunasFixasConsulta = ['numero_empenho', 'unidade_orcamentaria_nome', 'va
 
 const nomesColunas = {
     ano_empenho: 'Ano',
-    unidade_orcamentaria_codigo: 'Cód. Unid. Orçamentária',
-    unidade_orcamentaria_nome: 'Unidade Orçamentária',
+    unidade_orcamentaria_codigo: 'Código UO',
+    unidade_orcamentaria_nome: 'Nome UO',
     numero_empenho: 'Nº Empenho',
     data_registro_doc_empenho: 'Data Registro',
     razao_social_credor: 'Credor',
     cnpj_cpf_credor_formatado: 'CNPJ/CPF',
     licitacao_descricao_da_modalidade: 'Modalidade',
-    numero_processo_compra_siad: 'Nº Processo (SIAD)',
+    numero_processo_compra_siad: 'Nº Proc. Compra',
     _lic_numero_contrato: 'Nº Contrato',
-    _lic_link_processo: 'Link Processo Compra',
-    _lic_link_contrato: 'Link Contrato',
     objeto_processo: 'Objeto',
     elemento_despesa_codigo: 'Cód. Elemento',
     elemento_despesa_descricao: 'Elemento Despesa',
@@ -641,8 +637,8 @@ const nomesColunas = {
 const ordemColunasConsulta = [
     'ano_empenho','unidade_orcamentaria_codigo','unidade_orcamentaria_nome','numero_empenho',
     'data_registro_doc_empenho','razao_social_credor','cnpj_cpf_credor_formatado',
-    'licitacao_descricao_da_modalidade','numero_processo_compra_siad','_lic_link_processo',
-    '_lic_numero_contrato','_lic_link_contrato','objeto_processo',
+    'licitacao_descricao_da_modalidade','numero_processo_compra_siad',
+    '_lic_numero_contrato','objeto_processo',
     'elemento_despesa_codigo','elemento_despesa_descricao',
     'valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro',
     'valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'
@@ -924,8 +920,8 @@ async function carregarDados() {
 
         dadosFiltradosConsulta = [...dadosConsolidados];
 
-        renderizarVisaoGeral();
         renderizarConsultaEmpenho();
+        renderizarVisaoGeral();
         renderizarDownloads();
 
         // Data de atualização via GitHub API
@@ -1336,7 +1332,8 @@ tbody.innerHTML = dadosConsolidados.map(linha => `
             </div>
             <div class="filter-group">
                 <label class="filter-label">Nº Empenho</label>
-                <input type="text" class="form-control" id="consFiltroEmpenho" placeholder="Número...">
+                <input type="text" class="form-control" id="consFiltroEmpenho" list="consListEmpenho" placeholder="Número...">
+                <datalist id="consListEmpenho"></datalist>
             </div>
             <div class="filter-group" style="flex:2;min-width:180px;">
                 <label class="filter-label">Credor</label>
@@ -1345,7 +1342,8 @@ tbody.innerHTML = dadosConsolidados.map(linha => `
             </div>
             <div class="filter-group">
                 <label class="filter-label">CNPJ/CPF</label>
-                <input type="text" class="form-control" id="consFiltroCnpj" placeholder="CNPJ/CPF...">
+                <input type="text" class="form-control" id="consFiltroCnpj" list="consListCnpj" placeholder="CNPJ/CPF...">
+                <datalist id="consListCnpj"></datalist>
             </div>
             <div class="filter-group">
                 <label class="filter-label">Mod. Licitação</label>
@@ -1353,8 +1351,9 @@ tbody.innerHTML = dadosConsolidados.map(linha => `
                 <datalist id="consListModalidade">${modalidades.map(m=>`<option value="${m}">`).join('')}</datalist>
             </div>
             <div class="filter-group">
-                <label class="filter-label">Nº Processo Compra</label>
-                <input type="text" class="form-control" id="consFiltroProcesso" placeholder="Processo...">
+                <label class="filter-label">Nº Proc. Compra</label>
+                <input type="text" class="form-control" id="consFiltroProcesso" list="consListProcesso" placeholder="Processo...">
+                <datalist id="consListProcesso"></datalist>
             </div>
             <div class="filter-group">
                 <label class="filter-label">Cód. Elemento</label>
@@ -1363,11 +1362,13 @@ tbody.innerHTML = dadosConsolidados.map(linha => `
             </div>
             <div class="filter-group" style="flex:2;min-width:180px;">
                 <label class="filter-label">Descrição Elemento</label>
-                <input type="text" class="form-control" id="consFiltroDescElemento" placeholder="Palavra-chave...">
+                <input type="text" class="form-control" id="consFiltroDescElemento" list="consListDescElemento" placeholder="Palavra-chave...">
+                <datalist id="consListDescElemento"></datalist>
             </div>
             <div class="filter-group" style="flex:2;min-width:200px;">
                 <label class="filter-label">Objeto do Processo</label>
-                <input type="text" class="form-control" id="consFiltroObjeto" placeholder="Palavra-chave no objeto...">
+                <input type="text" class="form-control" id="consFiltroObjeto" list="consListObjeto" placeholder="Palavra-chave no objeto...">
+                <datalist id="consListObjeto"></datalist>
             </div>
         </div>
         <div class="botoes-abaixo">
@@ -1391,7 +1392,7 @@ tbody.innerHTML = dadosConsolidados.map(linha => `
     <div class="table-container">
         <div class="table-fixed-header-container">
             <table class="table" id="consultaTable">
-                <thead><tr id="consultaTheadRow">${gerarCabecalhosConsulta()}</tr></thead>
+                <thead><tr id="consultaTheadRow">${montarCabecalhoConsulta()}</tr></thead>
                 <tbody id="consultaTableBody"></tbody>
                 <tfoot id="consultaTableFoot"></tfoot>
             </table>
@@ -1408,6 +1409,24 @@ tbody.innerHTML = dadosConsolidados.map(linha => `
     dadosFiltradosConsulta = ordenarDadosGenerico(dadosFiltradosConsulta, sortConsulta.col, sortConsulta.dir);
     paginacaoConsulta.atual = 1;
     paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
+
+    // Populate datalists dinamicamente
+    const empenhos = [...new Set(dadosConsolidados.map(d=>d.numero_empenho))].filter(Boolean).sort();
+    const listEmpenho = document.getElementById('consListEmpenho');
+    if (listEmpenho) listEmpenho.innerHTML = empenhos.slice(0,500).map(v=>`<option value="${v}">`).join('');
+    const cnpjs = [...new Set(dadosConsolidados.map(d=>d.cnpj_cpf_credor_formatado))].filter(Boolean).sort();
+    const processos = [...new Set(dadosConsolidados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort();
+    const descsElem = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort();
+    const objetos = [...new Set(dadosConsolidados.map(d=>d.objeto_processo))].filter(Boolean).sort();
+    const listCnpj = document.getElementById('consListCnpj');
+    const listProcesso = document.getElementById('consListProcesso');
+    const listDescElem = document.getElementById('consListDescElemento');
+    const listObjeto = document.getElementById('consListObjeto');
+    if (listCnpj) listCnpj.innerHTML = cnpjs.map(v=>`<option value="${v}">`).join('');
+    if (listProcesso) listProcesso.innerHTML = processos.map(v=>`<option value="${v}">`).join('');
+    if (listDescElem) listDescElem.innerHTML = descsElem.map(v=>`<option value="${v}">`).join('');
+    if (listObjeto) listObjeto.innerHTML = objetos.slice(0,300).map(v=>`<option value="${v.substring(0,100)}">`).join('');
+
     atualizarTabelaConsulta();
 } 
 function montarCabecalhoConsulta() {
@@ -1460,19 +1479,9 @@ function atualizarTabelaConsulta() {
                 } else {
                     row += `<td>${proc||'-'}</td>`;
                 }
-            } else if (col === '_lic_link_processo') {
-                const url = item._lic_link_processo || item._lic_edital_url || '';
-                if (url) {
-                    row += `<td class="text-center"><a href="${url}" target="_blank" class="btn-export" style="height:26px;padding:0 8px;font-size:11px;" title="Acessar Processo de Compra"><i class="material-icons" style="font-size:13px">open_in_new</i> Processo</a></td>`;
-                } else { row += `<td class="text-center">-</td>`; }
-            } else if (col === '_lic_link_contrato') {
-                const url = item._lic_link_contrato || item._lic_contrato_url || '';
-                if (url) {
-                    row += `<td class="text-center"><a href="${url}" target="_blank" class="btn-export" style="height:26px;padding:0 8px;font-size:11px;" title="Acessar Contrato"><i class="material-icons" style="font-size:13px">article</i> Contrato</a></td>`;
-                } else { row += `<td class="text-center">-</td>`; }
             } else if (col === '_lic_numero_contrato') {
                 const contrato = valor || '';
-                const contratoUrl = item._lic_contrato_url || '';
+                const contratoUrl = item._lic_contrato_url || item._lic_link_contrato || '';
                 if (contrato && contratoUrl) {
                     row += `<td><a href="${contratoUrl}" target="_blank" class="empenho-link" title="Acessar Contrato">${contrato} <i class="material-icons" style="font-size:11px;vertical-align:middle">open_in_new</i></a></td>`;
                 } else {
@@ -1603,25 +1612,15 @@ window.buscarConsulta = function(termo) {
                 const edital = item._lic_edital_url || '';
                 const proc = valor || '';
                 if (proc && edital) {
-                    row += `<td><a href="${edital}" target="_blank" class="empenho-link" title="Acessar Edital">${proc} <i class="material-icons" style="font-size:11px;vertical-align:middle">open_in_new</i></a></td>`;
+                    row += `<td><a href="${edital}" target="_blank" class="empenho-link" title="Acessar Edital">${proc} <i class="material-icons" style="font-size:11px;vertical-align:middle"></i></a></td>`;
                 } else {
                     row += `<td>${proc||'-'}</td>`;
                 }
-            } else if (col === '_lic_link_processo') {
-                const url = item._lic_link_processo || item._lic_edital_url || '';
-                if (url) {
-                    row += `<td class="text-center"><a href="${url}" target="_blank" class="btn-export" style="height:26px;padding:0 8px;font-size:11px;"><i class="material-icons" style="font-size:13px">open_in_new</i> Processo</a></td>`;
-                } else { row += `<td class="text-center">-</td>`; }
-            } else if (col === '_lic_link_contrato') {
-                const url = item._lic_link_contrato || item._lic_contrato_url || '';
-                if (url) {
-                    row += `<td class="text-center"><a href="${url}" target="_blank" class="btn-export" style="height:26px;padding:0 8px;font-size:11px;"><i class="material-icons" style="font-size:13px">article</i> Contrato</a></td>`;
-                } else { row += `<td class="text-center">-</td>`; }
             } else if (col === '_lic_numero_contrato') {
                 const contrato = valor || '';
-                const contratoUrl = item._lic_contrato_url || '';
+                const contratoUrl = item._lic_contrato_url || item._lic_link_contrato || '';
                 if (contrato && contratoUrl) {
-                    row += `<td><a href="${contratoUrl}" target="_blank" class="empenho-link" title="Acessar Contrato">${contrato} <i class="material-icons" style="font-size:11px;vertical-align:middle">open_in_new</i></a></td>`;
+                    row += `<td><a href="${contratoUrl}" target="_blank" class="empenho-link" title="Acessar Contrato">${contrato} <i class="material-icons" style="font-size:11px;vertical-align:middle"></i></a></td>`;
                 } else {
                     row += `<td>${contrato||'-'}</td>`;
                 }
@@ -1705,7 +1704,7 @@ window.toggleColumnSelectorConsulta = function() { document.getElementById('colu
 window.atualizarColunaConsulta = function(col, checked) {
     colunasVisiveisConsulta[col] = checked;
     const tr = document.getElementById('consultaTheadRow');
-    if (tr) tr.innerHTML = gerarCabecalhosConsulta();
+    if (tr) tr.innerHTML = montarCabecalhoConsulta();
     atualizarTabelaConsulta();
 };
 
