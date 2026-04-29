@@ -1,0 +1,431 @@
+{
+  "version": "4.16.6",
+  "time": 0.567,
+  "errors": [],
+  "tasks": [
+    {
+      "resource": {
+        "description": "Insira a descrição/explicação detalhada deste recurso.",
+        "dialect": {
+          "delimiter": ";"
+        },
+        "encoding": "utf-8-sig",
+        "format": "csv",
+        "hashing": "md5",
+        "name": "empenho2026",
+        "path": "data/empenho2026.csv",
+        "profile": "tabular-data-resource",
+        "schema": {
+          "fields": [
+            {
+              "name": "unidade_orcamentaria_codigo",
+              "type": "string"
+            },
+            {
+              "name": "unidade_orcamentaria_nome",
+              "type": "string"
+            },
+            {
+              "name": "ano_empenho",
+              "type": "string"
+            },
+            {
+              "name": "numero_empenho",
+              "type": "string"
+            },
+            {
+              "name": "data_registro_doc_empenho",
+              "type": "date"
+            },
+            {
+              "name": "numero_processo_compra_siad",
+              "type": "string"
+            },
+            {
+              "name": "licitacao_descricao_da_modalidade",
+              "type": "string"
+            },
+            {
+              "name": "razao_social_credor",
+              "type": "string"
+            },
+            {
+              "name": "cnpj_cpf_credor_formatado",
+              "type": "string"
+            },
+            {
+              "name": "elemento_despesa_codigo",
+              "type": "geopoint"
+            },
+            {
+              "name": "elemento_despesa_descricao",
+              "type": "string"
+            },
+            {
+              "name": "valor_despesa_empenhada",
+              "type": "geopoint"
+            },
+            {
+              "name": "valor_despesa_liquidada",
+              "type": "geopoint"
+            },
+            {
+              "name": "valor_pago_financeiro",
+              "type": "string"
+            },
+            {
+              "name": "valor_pago_processado",
+              "type": "string"
+            },
+            {
+              "name": "valor_pago_nao_processado",
+              "type": "string"
+            }
+          ]
+        },
+        "scheme": "file",
+        "title": "Insira um título humanamente legível para este recurso.",
+        "stats": {
+          "hash": "acad87e00f9cac9474fff2ee4e083613",
+          "bytes": 3293818,
+          "fields": 16,
+          "rows": 12688
+        }
+      },
+      "time": 0.531,
+      "scope": [
+        "hash-count-error",
+        "byte-count-error",
+        "field-count-error",
+        "row-count-error",
+        "blank-header",
+        "extra-label",
+        "missing-label",
+        "blank-label",
+        "duplicate-label",
+        "incorrect-label",
+        "blank-row",
+        "primary-key-error",
+        "foreign-key-error",
+        "extra-cell",
+        "missing-cell",
+        "type-error",
+        "constraint-error",
+        "unique-error"
+      ],
+      "partial": false,
+      "errors": [
+        {
+          "cell": "-8235,0",
+          "fieldName": "valor_despesa_empenhada",
+          "fieldNumber": 12,
+          "fieldPosition": 12,
+          "cells": [
+            "1521,0",
+            "CONTROLADORIA-GERAL DO ESTADO",
+            "0,0",
+            "48,0",
+            "2026-02-12",
+            "1521001 000011/2024",
+            "PREGAO - LEI 14.133",
+            "CLM SOFTWARE COMERCIO IMPORTACAO E EXPORTACAO LTDA.",
+            "02.092.332/0001-79",
+            "40,0",
+            "SERVICOS DE TECNOLOGIA DA INFORMACAO E COMUNICACAO -  PESSOA JURIDICA",
+            "-8235,0",
+            "-8235,0",
+            "0,0",
+            "5062,0",
+            "777759,88"
+          ],
+          "rowNumber": 5363,
+          "rowPosition": 5364,
+          "code": "type-error",
+          "name": "Type Error",
+          "tags": [
+            "#table",
+            "#row",
+            "#cell"
+          ],
+          "note": "type is \"geopoint/default\"",
+          "message": "Type error in the cell \"-8235,0\" in row \"5364\" and field \"valor_despesa_empenhada\" at position \"12\": type is \"geopoint/default\"",
+          "description": "The value does not match the schema type and format for this field."
+        },
+        {
+          "cell": "-8235,0",
+          "fieldName": "valor_despesa_liquidada",
+          "fieldNumber": 13,
+          "fieldPosition": 13,
+          "cells": [
+            "1521,0",
+            "CONTROLADORIA-GERAL DO ESTADO",
+            "0,0",
+            "48,0",
+            "2026-02-12",
+            "1521001 000011/2024",
+            "PREGAO - LEI 14.133",
+            "CLM SOFTWARE COMERCIO IMPORTACAO E EXPORTACAO LTDA.",
+            "02.092.332/0001-79",
+            "40,0",
+            "SERVICOS DE TECNOLOGIA DA INFORMACAO E COMUNICACAO -  PESSOA JURIDICA",
+            "-8235,0",
+            "-8235,0",
+            "0,0",
+            "5062,0",
+            "777759,88"
+          ],
+          "rowNumber": 5363,
+          "rowPosition": 5364,
+          "code": "type-error",
+          "name": "Type Error",
+          "tags": [
+            "#table",
+            "#row",
+            "#cell"
+          ],
+          "note": "type is \"geopoint/default\"",
+          "message": "Type error in the cell \"-8235,0\" in row \"5364\" and field \"valor_despesa_liquidada\" at position \"13\": type is \"geopoint/default\"",
+          "description": "The value does not match the schema type and format for this field."
+        },
+        {
+          "cell": "-12810,25",
+          "fieldName": "valor_despesa_empenhada",
+          "fieldNumber": 12,
+          "fieldPosition": 12,
+          "cells": [
+            "2061,0",
+            "FUNDACAO JOAO PINHEIRO",
+            "0,0",
+            "74,0",
+            "2026-01-30",
+            "2061034 000028/2022",
+            "DISPENSA",
+            "CEMIG DISTRIBUICAO S.A.",
+            "06.981.180/0001-16",
+            "39,0",
+            "OUTROS SERVICOS DE TERCEIROS - PESSOA JURIDICA",
+            "-12810,25",
+            "-12810,25",
+            "0,0",
+            "27347,78",
+            "185827,4"
+          ],
+          "rowNumber": 6451,
+          "rowPosition": 6452,
+          "code": "type-error",
+          "name": "Type Error",
+          "tags": [
+            "#table",
+            "#row",
+            "#cell"
+          ],
+          "note": "type is \"geopoint/default\"",
+          "message": "Type error in the cell \"-12810,25\" in row \"6452\" and field \"valor_despesa_empenhada\" at position \"12\": type is \"geopoint/default\"",
+          "description": "The value does not match the schema type and format for this field."
+        },
+        {
+          "cell": "-12810,25",
+          "fieldName": "valor_despesa_liquidada",
+          "fieldNumber": 13,
+          "fieldPosition": 13,
+          "cells": [
+            "2061,0",
+            "FUNDACAO JOAO PINHEIRO",
+            "0,0",
+            "74,0",
+            "2026-01-30",
+            "2061034 000028/2022",
+            "DISPENSA",
+            "CEMIG DISTRIBUICAO S.A.",
+            "06.981.180/0001-16",
+            "39,0",
+            "OUTROS SERVICOS DE TERCEIROS - PESSOA JURIDICA",
+            "-12810,25",
+            "-12810,25",
+            "0,0",
+            "27347,78",
+            "185827,4"
+          ],
+          "rowNumber": 6451,
+          "rowPosition": 6452,
+          "code": "type-error",
+          "name": "Type Error",
+          "tags": [
+            "#table",
+            "#row",
+            "#cell"
+          ],
+          "note": "type is \"geopoint/default\"",
+          "message": "Type error in the cell \"-12810,25\" in row \"6452\" and field \"valor_despesa_liquidada\" at position \"13\": type is \"geopoint/default\"",
+          "description": "The value does not match the schema type and format for this field."
+        },
+        {
+          "cell": "-21132,99",
+          "fieldName": "valor_despesa_empenhada",
+          "fieldNumber": 12,
+          "fieldPosition": 12,
+          "cells": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "-21132,99",
+            "-21132,99",
+            "1419953418,12",
+            "239112952,33",
+            "1587118813,9"
+          ],
+          "rowNumber": 12688,
+          "rowPosition": 12689,
+          "code": "type-error",
+          "name": "Type Error",
+          "tags": [
+            "#table",
+            "#row",
+            "#cell"
+          ],
+          "note": "type is \"geopoint/default\"",
+          "message": "Type error in the cell \"-21132,99\" in row \"12689\" and field \"valor_despesa_empenhada\" at position \"12\": type is \"geopoint/default\"",
+          "description": "The value does not match the schema type and format for this field."
+        },
+        {
+          "cell": "-21132,99",
+          "fieldName": "valor_despesa_liquidada",
+          "fieldNumber": 13,
+          "fieldPosition": 13,
+          "cells": [
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "",
+            "-21132,99",
+            "-21132,99",
+            "1419953418,12",
+            "239112952,33",
+            "1587118813,9"
+          ],
+          "rowNumber": 12688,
+          "rowPosition": 12689,
+          "code": "type-error",
+          "name": "Type Error",
+          "tags": [
+            "#table",
+            "#row",
+            "#cell"
+          ],
+          "note": "type is \"geopoint/default\"",
+          "message": "Type error in the cell \"-21132,99\" in row \"12689\" and field \"valor_despesa_liquidada\" at position \"13\": type is \"geopoint/default\"",
+          "description": "The value does not match the schema type and format for this field."
+        }
+      ],
+      "stats": {
+        "errors": 6
+      },
+      "valid": false
+    },
+    {
+      "resource": {
+        "description": "Insira a descrição/explicação detalhada deste recurso.",
+        "dialect": {
+          "delimiter": ";"
+        },
+        "encoding": "utf-8-sig",
+        "format": "csv",
+        "hashing": "md5",
+        "name": "orgao2026",
+        "path": "data/orgao2026.csv",
+        "profile": "tabular-data-resource",
+        "schema": {
+          "fields": [
+            {
+              "name": "unidade_orcamentaria_codigo",
+              "type": "string"
+            },
+            {
+              "name": "unidade_orcamentaria_nome",
+              "type": "string"
+            },
+            {
+              "name": "valor_despesa_empenhada",
+              "type": "string"
+            },
+            {
+              "name": "valor_despesa_liquidada",
+              "type": "string"
+            },
+            {
+              "name": "valor_pago_financeiro",
+              "type": "string"
+            },
+            {
+              "name": "valor_pago_processado",
+              "type": "string"
+            },
+            {
+              "name": "valor_pago_nao_processado",
+              "type": "string"
+            },
+            {
+              "name": "valor_pago_rp",
+              "type": "string"
+            }
+          ]
+        },
+        "scheme": "file",
+        "title": "Insira um título humanamente legível para este recurso.",
+        "stats": {
+          "hash": "259477bb2431bf0bd039d0ce71a7a9af",
+          "bytes": 8696,
+          "fields": 8,
+          "rows": 73
+        }
+      },
+      "time": 0.013,
+      "scope": [
+        "hash-count-error",
+        "byte-count-error",
+        "field-count-error",
+        "row-count-error",
+        "blank-header",
+        "extra-label",
+        "missing-label",
+        "blank-label",
+        "duplicate-label",
+        "incorrect-label",
+        "blank-row",
+        "primary-key-error",
+        "foreign-key-error",
+        "extra-cell",
+        "missing-cell",
+        "type-error",
+        "constraint-error",
+        "unique-error"
+      ],
+      "partial": false,
+      "errors": [],
+      "stats": {
+        "errors": 0
+      },
+      "valid": true
+    }
+  ],
+  "stats": {
+    "errors": 6,
+    "tasks": 2
+  },
+  "valid": false
+}
