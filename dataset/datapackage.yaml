@@ -1,0 +1,79 @@
+name: portal_despesa_empenho
+owner_org: ''
+profile: data-package
+resources:
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: empenho2026
+    path: data/empenho2026.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: unidade_orcamentaria_codigo
+          type: string
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: ano_empenho
+          type: string
+        - name: numero_empenho
+          type: string
+        - name: data_registro_doc_empenho
+          type: date
+        - name: numero_processo_compra_siad
+          type: string
+        - name: licitacao_descricao_da_modalidade
+          type: string
+        - name: razao_social_credor
+          type: string
+        - name: cnpj_cpf_credor_formatado
+          type: string
+        - name: elemento_despesa_codigo
+          type: geopoint
+        - name: elemento_despesa_descricao
+          type: string
+        - name: valor_despesa_empenhada
+          type: geopoint
+        - name: valor_despesa_liquidada
+          type: geopoint
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: orgao2026
+    path: data/orgao2026.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: unidade_orcamentaria_codigo
+          type: string
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: valor_despesa_empenhada
+          type: string
+        - name: valor_despesa_liquidada
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+        - name: valor_pago_rp
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+title: Portal_despesa_empenho
