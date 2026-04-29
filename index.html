@@ -571,10 +571,25 @@
 // ============================================================
 // 1. CONFIGURAÇÕES
 // ============================================================
-const URL_EMPENHO_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/main/dataset/data/empenho';
+// URLs base — tenta refs/heads/main primeiro, fallback para /main/
+const URL_EMPENHO_BASE_V1 = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/refs/heads/main/dataset/data/empenho';
+const URL_EMPENHO_BASE_V2 = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/main/dataset/data/empenho';
+const URL_ORGAO_BASE_V1   = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/refs/heads/main/dataset/data/orgao';
+const URL_ORGAO_BASE_V2   = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/main/dataset/data/orgao';
 const URL_LICITACOES_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_licitacoes_mg/main/dataset/data/licitacoes';
 const PORTAL_DADOS_ABERTOS_URL = 'https://dados.mg.gov.br/dataset/portal_despesa_empenho';
 const ANOS_DISPONIVEIS = [2022, 2023, 2024, 2025, 2026];
+
+// Tenta URL v1, se falhar tenta v2
+async function fetchCSVComFallback(baseV1, baseV2, ano) {
+    for (const base of [baseV1, baseV2]) {
+        try {
+            const r = await fetch(`${base}${ano}.csv`);
+            if (r.ok) return r;
+        } catch(e) {}
+    }
+    return null;
+}
 
 let dadosEmpenho = [];
 let dadosLicitacoes = [];
@@ -800,11 +815,20 @@ async function carregarDados() {
         for (const ano of ANOS_DISPONIVEIS) {
             mostrarLoading(true, `Carregando empenhos ${ano}...`);
             try {
-                const resp = await fetch(`${URL_EMPENHO_BASE}${ano}.csv`);
-                if (resp.ok) {
+                const resp = await fetchCSVComFallback(URL_EMPENHO_BASE_V1, URL_EMPENHO_BASE_V2, ano);
+                if (resp) {
                     const texto = await resp.text();
                     const dados = parseCSV(texto);
+                    // Garantir que todo registro tenha o ano correto (fallback = ano do arquivo)
+                    dados.forEach(d => {
+                        if (!d['ano_empenho'] || d['ano_empenho'] === 'NULL') {
+                            d['ano_empenho'] = String(ano);
+                        }
+                    });
                     dadosEmpenho = [...dadosEmpenho, ...dados];
+                    console.log(`[OK] empenho${ano}.csv — ${dados.length} registros`);
+                } else {
+                    console.warn(`[SKIP] empenho${ano}.csv — não encontrado`);
                 }
             } catch(e) { console.error(`Erro empenho ${ano}:`, e); }
 
@@ -822,8 +846,8 @@ async function carregarDados() {
             // Carregar orgão para enriquecer nomes
             mostrarLoading(true, `Carregando órgãos ${ano}...`);
             try {
-                const resp3 = await fetch(`${URL_EMPENHO_BASE.replace('empenho','orgao')}${ano}.csv`);
-                if (resp3.ok) {
+                const resp3 = await fetchCSVComFallback(URL_ORGAO_BASE_V1, URL_ORGAO_BASE_V2, ano);
+                if (resp3) {
                     const texto3 = await resp3.text();
                     const dados3 = parseCSV(texto3);
                     dados3.forEach(o => {
@@ -831,6 +855,9 @@ async function carregarDados() {
                         const nome = o['unidade_orcamentaria_nome'] || o['nome'] || '';
                         if (cod && nome) orgaoMap.set(String(cod).trim(), nome);
                     });
+                    console.log(`[OK] orgao${ano}.csv`);
+                } else {
+                    console.warn(`[SKIP] orgao${ano}.csv — não encontrado`);
                 }
             } catch(e) { console.error(`Erro orgão ${ano}:`, e); }
         }
@@ -871,8 +898,13 @@ async function carregarDados() {
             const codUnid = emp['unidade_orcamentaria_codigo'] ? String(emp['unidade_orcamentaria_codigo']).trim() : '';
             const nomeUnid = emp['unidade_orcamentaria_nome'] || orgaoMap.get(codUnid) || '';
 
+            // Determinar ano: usar campo do CSV, validar que é um ano razoável (>= 2000), senão null
+            let anoVal = emp['ano_empenho'] ? formatarInteiro(emp['ano_empenho']) : '';
+            const anoNum = parseInt(anoVal);
+            if (!anoVal || isNaN(anoNum) || anoNum < 2000 || anoNum > 2100) anoVal = null;
+
             return {
-                ano_empenho: emp['ano_empenho'] ? formatarInteiro(emp['ano_empenho']) : '2026',
+                ano_empenho: anoVal,
                 unidade_orcamentaria_codigo: codUnid ? formatarInteiro(codUnid) : '',
                 unidade_orcamentaria_nome: nomeUnid,
                 numero_empenho: emp['numero_empenho'] ? formatarInteiro(emp['numero_empenho']) : '',
@@ -919,6 +951,9 @@ async function carregarDados() {
         });
 
         dadosFiltradosConsulta = [...dadosConsolidados];
+        // Remove registros sem ano válido (ex: linhas de cabeçalho duplicadas ou valores nulos)
+        dadosConsolidados = dadosConsolidados.filter(d => d.ano_empenho && d.ano_empenho !== '0');
+        dadosFiltradosConsulta = [...dadosConsolidados];
 
         renderizarConsultaEmpenho();
         renderizarVisaoGeral();
@@ -950,8 +985,11 @@ function gerarCabecalhosConsulta(dados) {
 
 async function carregarDataAtualizacao() {
     const el = document.getElementById('data-atualizacao-header');
+    // Determine the most recent year that actually has data
+    const anosComDados = [...new Set(dadosConsolidados.map(d => d.ano_empenho))].filter(Boolean).map(Number).sort((a,b)=>b-a);
+    const anoMaisRecente = anosComDados[0] || Math.max(...ANOS_DISPONIVEIS);
     try {
-        const resp = await fetch('https://api.github.com/repos/transparencia-mg/portal_despesa_empenho/commits?path=dataset/data/empenho2026.csv&per_page=1');
+        const resp = await fetch(`https://api.github.com/repos/transparencia-mg/portal_despesa_empenho/commits?path=dataset/data/empenho${anoMaisRecente}.csv&per_page=1`);
         if (resp.ok) {
             const cs = await resp.json();
             if (cs && cs.length > 0) {
@@ -960,7 +998,7 @@ async function carregarDataAtualizacao() {
             }
         }
     } catch(e) {}
-    el.textContent = '2026';
+    el.textContent = String(anoMaisRecente);
 }
 
 // ============================================================
