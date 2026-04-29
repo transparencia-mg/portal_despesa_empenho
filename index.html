@@ -1,0 +1,1739 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>Despesa por Empenho - Portal da Transparência MG</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        /* ============================================================
+           1. VARIÁVEIS DE CORES
+        ============================================================ */
+        :root {
+            --primary-dark:      #1a3a5c;
+            --primary-darker:    #0f2a44;
+            --accent-red:        #b93c42;
+            --accent-bright:     #db233f;
+            --background-light:  #f5f7fa;
+            --success-green:     #28a745;
+            --warning-yellow:    #ffc107;
+            --info-blue:         #17a2b8;
+            --border-color:      #dee2e6;
+        }
+
+        /* ============================================================
+           2. RESET E CONFIGURAÇÕES GLOBAIS
+        ============================================================ */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; overflow-x: hidden; margin: 0; padding: 0; height: auto; min-height: auto; }
+        body {
+            font-family: 'Montserrat', Segoe UI, Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background-light);
+            padding-bottom: 15px;
+            overflow-x: hidden;
+            min-height: auto;
+            height: auto;
+            position: relative;
+        }
+        body, button, input, select, textarea, span, div { font-family: 'Montserrat', sans-serif !important; }
+        .material-icons { font-family: 'Material Icons' !important; font-size: 14px; vertical-align: middle; }
+
+        /* ============================================================
+           3. LAYOUT PRINCIPAL
+        ============================================================ */
+        .main-container { height: auto; min-height: auto; overflow: visible; position: relative; }
+        .container-fluid { width: 100%; max-width: 88% !important; padding: 0 40px; margin: 0; height: auto; min-height: auto; }
+        .dashboard-container { width: 100%; max-width: 100%; padding: 0 40px; margin: 0 auto; height: auto; min-height: auto; }
+        .tab-content, .tab-pane { width: 100%; height: auto; min-height: auto; overflow: visible; }
+        .table-container { height: auto; min-height: auto; overflow: visible; position: relative; }
+        .iframe-mode { overflow: visible !important; }
+
+        /* ============================================================
+           4. DATA DE ATUALIZAÇÃO
+        ============================================================ */
+        .data-atualizacao-container { display: flex; justify-content: left; align-items: center; margin: 15px 0; }
+        .data-atualizacao-box {
+            background: transparent !important;
+            border-radius: 8px;
+            padding: 8px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--primary-dark);
+            font-weight: 600;
+            box-shadow: none;
+        }
+        .data-atualizacao-box i { font-size: 14px; color: var(--accent-red); }
+
+        /* ============================================================
+           5. FILTROS
+        ============================================================ */
+        .filter-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            padding: 20px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+        .filter-label { font-size: 13px; font-weight: 600; color: #1a3a5c; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .filter-label i { font-size: 14px; color: var(--accent-red); }
+        .form-control, .form-select {
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px 12px;
+            font-size: 13px;
+            transition: all 0.3s ease;
+            height: auto;
+            width: 100%;
+        }
+        .form-control:focus, .form-select:focus { border-color: var(--accent-red); box-shadow: 0 0 0 2px rgba(185,60,66,0.15); outline: none; }
+        .modern-select {
+            border: 1.5px solid #dfe5ec !important;
+            border-radius: 8px !important;
+            padding: 10px 12px !important;
+            font-size: 13px !important;
+            height: 42px !important;
+            line-height: 1.5 !important;
+            background-color: #fff;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        .modern-select:focus { border-color: #1a3a5c !important; box-shadow: 0 0 0 2px rgba(26,58,92,0.1); outline: none; }
+        .filters-row { display: flex; gap: 15px; width: 100%; flex-wrap: wrap; margin-bottom: 12px; }
+        .filter-group { flex: 1; min-width: 140px; }
+        .botoes-abaixo { margin-top: 8px; display: flex; gap: 10px; flex-wrap: wrap; }
+
+        /* ============================================================
+           6. CARDS DE MÉTRICAS
+        ============================================================ */
+        .metric-card {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e5e9ef;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+            height: 100%;
+            transition: box-shadow 0.25s ease, transform 0.25s ease;
+        }
+        .metric-card:hover { box-shadow: 0 8px 24px rgba(26,58,92,0.13); transform: translateY(-2px); }
+        .metric-header {
+            background: #20445d;
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            padding: 10px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .metric-body { padding: 12px 15px; }
+        .metric-value { font-size: 18px; font-weight: 700; color: #171c21; }
+        .metric-sublabel { font-size: 10px; color: #94a3b8; font-weight: 500; margin-top: 2px; }
+
+        /* ============================================================
+           7. GRÁFICOS
+        ============================================================ */
+        .chart-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .chart-header {
+            background: #20445d;
+            color: white;
+            padding: 12px 16px;
+            margin: 0;
+        }
+        .chart-title { font-size: 14px; font-weight: 600; color: white; margin: 0; }
+        .chart-wrapper { height: 260px; padding: 10px 15px; width: 100%; }
+
+        /* ============================================================
+           8. TABELAS
+        ============================================================ */
+        .table-header {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-darker) 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .table-title { font-size: 13px; font-weight: 600; margin: 0; }
+        .table-badge { background: #1a3a5c; color: white; padding: 5px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+        .table-fixed-header-container { position: relative; overflow: auto; width: 100%; max-height: 600px; }
+        .table-fixed-header-container table thead th {
+            background-color: #54697b !important;
+            color: white !important;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            font-weight: 600;
+            padding: 12px 10px;
+            font-size: 12px;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        .table { width: 100%; font-size: 12px; border-collapse: collapse; table-layout: auto; }
+        .table th, .table td { border: 1px solid #d6dee6; }
+        .table thead th {
+            background-color: #54697b !important;
+            color: white !important;
+            font-weight: 600;
+            font-size: 12px;
+            padding: 12px 10px;
+            text-transform: uppercase;
+            border: 1px solid #d6dee6;
+            cursor: pointer;
+            user-select: none;
+        }
+        .table thead th:hover { background-color: #3d5566 !important; }
+        .table tbody tr { background-color: #ffffff; }
+        .table tbody td { padding: 10px 10px; vertical-align: middle; border-bottom: 1px solid #f1f1f1; font-size: 12px; }
+        .table tbody tr:hover { background-color: rgba(41,67,90,0.04); }
+        .table tfoot { position: sticky; bottom: 0; z-index: 20; }
+        .table tfoot tr, .table tfoot td { background-color: #dfe3e8 !important; font-weight: 700; font-size: 12px; }
+        .table-responsive { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        .orgao-link, .empenho-link {
+            color: #006a82;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .orgao-link:hover, .empenho-link:hover { color: var(--accent-red); text-decoration: underline; }
+
+        .sortable-header { cursor: pointer; position: relative; padding-right: 22px !important; }
+        .sortable-header:hover { background-color: #3d5566 !important; }
+        .sortable-header i { font-size: 13px; position: absolute; right: 5px; top: 50%; transform: translateY(-50%); opacity: 0.8; }
+        .text-right { text-align: right; }
+
+        /* ============================================================
+           9. BOTÕES
+        ============================================================ */
+        .btn-pesquisa {
+            background: linear-gradient(to right, #20445d, #20445d);
+            border: none;
+            padding: 0 16px;
+            font-weight: 600;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 13px;
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            height: 36px;
+            white-space: nowrap;
+        }
+        .btn-pesquisa:hover { background: linear-gradient(to right, var(--accent-red), #a32c32); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(185,60,66,0.2); color: white; }
+        .btn-secondary-custom {
+            background: white;
+            border: 2px solid var(--primary-darker);
+            color: var(--primary-darker);
+            padding: 0 16px;
+            font-weight: 600;
+            font-size: 13px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            height: 36px;
+            white-space: nowrap;
+            text-decoration: none !important;
+        }
+        .btn-secondary-custom:hover { background-color: #132837 !important; color: white !important; border-color: #132837 !important; }
+        .btn-export {
+            appearance: none;
+            -webkit-appearance: none;
+            background: transparent !important;
+            border: 1px solid #d6dee6;
+            color: #1a3a5c;
+            padding: 0 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            height: 32px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        .btn-export i { font-size: 14px !important; }
+        button.btn-export:hover, a.btn-export:hover { background-color: #1a3a5c !important; border-color: #1a3a5c !important; color: #ffffff !important; }
+        .btn-action {
+            padding: 4px;
+            border-radius: 7px;
+            border: 1.5px solid #1a3a5c;
+            background-color: #ffffff;
+            color: #1a3a5c;
+            width: 32px;
+            height: 30px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .btn-action:hover { background-color: #1a3a5c; color: #ffffff; }
+        .btn-topo {
+            background: #eeeff5;
+            color: #1a3a5c;
+            border: 1px solid #d6dee6;
+            border-radius: 12px;
+            padding: 0 16px;
+            font-size: 13px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            height: 32px;
+        }
+        .btn-topo:hover { background-color: #1a3a5c; color: #ffffff; border-color: #1a3a5c; }
+
+        /* Seletor de colunas */
+        .column-selector { position: relative; display: inline-block; }
+        .column-selector-dropdown { display: none; position: absolute; right: 0; top: 100%; background: white; min-width: 260px; box-shadow: 0 8px 16px rgba(0,0,0,0.15); border-radius: 8px; z-index: 2000; margin-top: 5px; padding: 15px; border: 1px solid #e9ecef; max-height: 320px; overflow-y: auto; }
+        .column-selector-dropdown.show { display: block; }
+        .column-selector-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid #e9ecef; }
+        .column-selector-header h6 { font-size: 13px; font-weight: 700; color: var(--primary-dark); margin: 0; }
+        .column-selector-close { cursor: pointer; color: #6c757d; font-size: 14px; }
+        .column-selector-close:hover { color: var(--accent-red); }
+        .column-selector-item { display: flex; align-items: center; padding: 6px 8px; border-radius: 4px; cursor: pointer; }
+        .column-selector-item:hover { background-color: #f8f9fa; }
+        .column-selector-item input[type="checkbox"] { width: 14px; height: 14px; margin-right: 8px; cursor: pointer; accent-color: var(--primary-dark); }
+        .column-selector-item label { font-size: 12px; cursor: pointer; flex: 1; color: var(--primary-dark); }
+        .fixed-column-badge { font-size: 10px; background-color: #e9ecef; color: #6c757d; padding: 2px 6px; border-radius: 12px; font-weight: 600; margin-right: 8px; }
+
+        /* ============================================================
+           10. NAVEGAÇÃO (abas)
+        ============================================================ */
+        .nav-tabs-container { background: transparent; padding: 10px 0; margin-top: 15px; margin-bottom: 15px; width: 100%; }
+        .nav-tabs { border: none !important; gap: 10px; width: 100%; flex-wrap: wrap; }
+        .nav-tabs .nav-link {
+            border: none !important;
+            background: #ffffff !important;
+            border-radius: 10px !important;
+            padding: 8px 18px !important;
+            font-weight: 500;
+            font-size: 13px;
+            color: #1a3a5c !important;
+            display: inline-flex !important;
+            align-items: center;
+            gap: 6px;
+            transition: all .25s ease;
+            white-space: nowrap;
+        }
+        .nav-tabs .nav-link:hover { background: #e6e9ed !important; }
+        .nav-tabs .nav-link.active { background: #234c63 !important; color: #fff !important; box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
+        .nav-tabs .material-icons { font-size: 14px !important; }
+
+        /* ============================================================
+           11. MODAL
+        ============================================================ */
+        .modal-creative .modal-header {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-darker) 100%);
+            color: white !important;
+            padding: 15px 20px;
+            border-bottom: none;
+        }
+        .modal-creative .modal-header .modal-title { color: white !important; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+        .modal-creative .modal-header .btn-close { filter: brightness(0) invert(1); opacity: 1; }
+        .info-card { background: #f8fafd; border-radius: 10px; padding: 13px 16px; margin-bottom: 13px; border: 1px solid #e2e8f0; border-left: 4px solid var(--accent-red); }
+        .info-card.primary { border-left-color: var(--primary-dark); }
+        .info-label { font-size: 10px; text-transform: uppercase; color: #64748b; font-weight: 600; margin-bottom: 4px; }
+        .info-value { font-size: 13px; font-weight: 500; color: #1e293b; word-break: break-word; }
+        .info-value.highlight { font-size: 16px; color: var(--accent-red); font-weight: 700; }
+
+        /* ============================================================
+           12. PAGINAÇÃO
+        ============================================================ */
+        .pagination-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+            width: 100%;
+            flex-wrap: wrap;
+            gap: 10px;
+            border-radius: 0 0 8px 8px;
+        }
+        .pagination-info { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #6c757d; flex-wrap: wrap; }
+        .pagination-controls { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+        .pagination-controls button {
+            min-width: 34px; height: 34px; border: 1px solid #dee2e6; background: white; color: var(--primary-dark);
+            border-radius: 6px; display: inline-flex; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s; font-size: 13px; padding: 0 6px;
+        }
+        .pagination-controls button:hover:not(:disabled) { background-color: var(--primary-dark); color: white; border-color: var(--primary-dark); }
+        .pagination-controls button.active { background-color: var(--primary-dark); color: white; border-color: var(--primary-dark); }
+        .pagination-controls button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .page-size-selector { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6c757d; }
+        .page-size-selector select { width: 70px; border: 1px solid #d6dee6; border-radius: 6px; padding: 4px 6px; font-size: 12px; background-color: white; color: var(--primary-dark); font-weight: 600; cursor: pointer; outline: none; }
+        .page-input { display: flex; align-items: center; gap: 6px; }
+        .page-input input { width: 56px; height: 32px; border: 1px solid #dee2e6; border-radius: 6px; text-align: center; font-size: 13px; padding: 0 4px; }
+        .page-input input:focus { outline: none; border-color: var(--primary-dark); }
+        .page-input button { height: 32px; background: var(--primary-dark); color: white; border: none; border-radius: 6px; padding: 0 10px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .page-input button:hover { background: var(--accent-red); }
+
+        /* ============================================================
+           13. TOOLBAR
+        ============================================================ */
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+        .toolbar-left  { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+        /* ============================================================
+           14. LOADING
+        ============================================================ */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(238,241,246,0.95);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .loading-overlay.show { display: flex; }
+        .loading-progress { font-size: 13px; color: #20445d; font-weight: 700; }
+        .spinner-small { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: white; animation: spin 1s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ============================================================
+           15. TOAST
+        ============================================================ */
+        .toast-sucesso {
+            position: fixed;
+            bottom: 30px; left: 50%;
+            transform: translateX(-50%);
+            background: #e6f4ea; color: #1e4620;
+            border-radius: 12px; padding: 14px 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            display: none; align-items: center; justify-content: center; gap: 10px;
+            z-index: 9999; min-width: 280px;
+        }
+
+        /* ============================================================
+           16. METADADOS
+        ============================================================ */
+        .metadata-container { background: white; border-radius: 10px; box-shadow: 0 3px 12px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; }
+        .metadata-header { background: #20445d; color: white; padding: 12px 16px; font-size: 13px; font-weight: 700; }
+        .metadata-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .metadata-table thead th { background-color: #54697b !important; color: white !important; padding: 10px; font-size: 11px; text-transform: uppercase; font-weight: 600; }
+        .metadata-table tbody tr:nth-child(even) { background: #f8fafd; }
+        .metadata-table tbody td { padding: 10px; border-bottom: 1px solid #f0f4f8; vertical-align: top; color: #334155; }
+        .metadata-table code { background: #e2e8f0; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: 11px; }
+
+        /* ============================================================
+           17. RESPONSIVIDADE
+        ============================================================ */
+        @media (max-width: 992px) {
+            .container-fluid, .dashboard-container { padding: 0 15px !important; }
+        }
+        @media (max-width: 768px) {
+            .container-fluid, .dashboard-container { padding: 0 10px !important; }
+            .nav-tabs { flex-direction: column; gap: 6px; }
+            .nav-tabs .nav-link { width: 100%; justify-content: flex-start; font-size: 13px; padding: 10px 14px !important; border-radius: 8px !important; }
+            .filters-row { flex-direction: column; }
+            .filter-group { min-width: 100%; width: 100%; }
+            .botoes-abaixo { flex-direction: column; }
+            .btn-pesquisa, .btn-secondary-custom { width: 100%; justify-content: center; }
+            .metric-value { font-size: 14px; }
+            .toolbar { flex-direction: column; align-items: flex-start; }
+            .pagination-container { flex-direction: column; align-items: flex-start; gap: 8px; }
+            .page-input { display: none; }
+            .table-fixed-header-container { max-height: 400px; }
+            .table { font-size: 11px; }
+            .modal-dialog { max-width: 98% !important; width: 98% !important; margin: 4px auto; }
+            .chart-wrapper { height: 200px; }
+        }
+    </style>
+</head>
+<body class="iframe-mode">
+
+<div class="main-container">
+    <div class="container-fluid dashboard-container">
+
+        <!-- Navegação por abas -->
+        <div class="nav-tabs-container">
+            <ul class="nav nav-tabs" id="dashboardTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" id="visao-geral-tab"
+                        data-bs-toggle="tab" data-bs-target="#visao-geral">
+                        <i class="material-icons">bar_chart</i>Visão Geral
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="consulta-empenho-tab"
+                        data-bs-toggle="tab" data-bs-target="#consulta-empenho">
+                        <i class="material-icons">receipt</i>Consulta por Empenho
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" id="downloads-tab"
+                        data-bs-toggle="tab" data-bs-target="#downloads">
+                        <i class="material-icons">download</i>Downloads
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Data de atualização -->
+        <div class="data-atualizacao-container">
+            <div class="data-atualizacao-box">
+                <i class="material-icons">event</i>
+                Atualizado em: <span id="data-atualizacao-header" style="margin-left:4px;">Carregando...</span>
+            </div>
+        </div>
+
+        <!-- Conteúdo das abas -->
+        <div class="tab-content" id="dashboardTabsContent">
+            <div class="tab-pane fade show active" id="visao-geral" role="tabpanel">
+                <div id="visao-geral-content"></div>
+            </div>
+            <div class="tab-pane fade" id="consulta-empenho" role="tabpanel">
+                <div id="consulta-empenho-content"></div>
+            </div>
+            <div class="tab-pane fade" id="downloads" role="tabpanel">
+                <div id="downloads-content"></div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- MODAL DETALHES EMPENHO -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content modal-creative">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="material-icons">receipt</i> Detalhamento do Empenho
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalContent"></div>
+            <div class="modal-footer" style="gap:8px;">
+                <button class="btn-export" onclick="exportarModalCSV()"><i class="material-icons">description</i> CSV</button>
+                <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal">
+                    <i class="material-icons">close</i> Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div id="toastSucesso" class="toast-sucesso">
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+        <i class="material-icons" style="color:#28a745">check_circle</i>
+        <span>Operação realizada com sucesso!</span>
+    </div>
+</div>
+
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner-border" role="status" style="color:#20445d;width:2.5rem;height:2.5rem;"></div>
+    <div class="loading-progress" id="loadingProgress">Carregando dados...</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+// ============================================================
+// 1. CONFIGURAÇÕES
+// ============================================================
+const URL_EMPENHO_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/refs/heads/main/dataset/data/empenho';
+const URL_LICITACOES_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_licitacoes_mg/refs/heads/main/dataset/data/licitacoes';
+const PORTAL_DADOS_ABERTOS_URL = 'https://dados.mg.gov.br/dataset/portal_despesa_empenho';
+const ANOS_DISPONIVEIS = [2026]; // Adicionar anos conforme disponíveis
+
+let dadosEmpenho = [];
+let dadosLicitacoes = [];
+let dadosConsolidados = [];
+let dadosFiltradosConsulta = [];
+let chartBar = null;
+
+let paginacaoVG = { atual: 1, total: 1, porPagina: 50 };
+let paginacaoConsulta = { atual: 1, total: 1, porPagina: 50 };
+
+let sortVG = { col: 'valor_despesa_empenhada', dir: 'desc' };
+let sortConsulta = { col: 'numero_empenho', dir: 'desc' };
+
+let colunasVisiveisConsulta = {
+    ano_empenho: true,
+    unidade_orcamentaria_codigo: true,
+    unidade_orcamentaria_nome: true,
+    numero_empenho: true,
+    data_registro_doc_empenho: true,
+    razao_social_credor: true,
+    cnpj_cpf_credor_formatado: true,
+    licitacao_descricao_da_modalidade: true,
+    numero_processo_compra_siad: true,
+    objeto_processo: true,
+    elemento_despesa_codigo: true,
+    elemento_despesa_descricao: true,
+    valor_despesa_empenhada: true,
+    valor_despesa_liquidada: true,
+    valor_pago_financeiro: true,
+    valor_pago_processado: false,
+    valor_pago_nao_processado: false,
+    valor_pago_rp: false
+};
+
+const colunasFixasConsulta = ['numero_empenho', 'unidade_orcamentaria_nome', 'valor_despesa_empenhada'];
+
+const nomesColunas = {
+    ano_empenho: 'Ano',
+    unidade_orcamentaria_codigo: 'Cód. Unid. Orçamentária',
+    unidade_orcamentaria_nome: 'Unidade Orçamentária',
+    numero_empenho: 'Nº Empenho',
+    data_registro_doc_empenho: 'Data Registro',
+    razao_social_credor: 'Credor',
+    cnpj_cpf_credor_formatado: 'CNPJ/CPF',
+    licitacao_descricao_da_modalidade: 'Modalidade',
+    numero_processo_compra_siad: 'Nº Processo (SIAD)',
+    objeto_processo: 'Objeto',
+    elemento_despesa_codigo: 'Cód. Elemento',
+    elemento_despesa_descricao: 'Elemento Despesa',
+    valor_despesa_empenhada: 'Valor Empenhado',
+    valor_despesa_liquidada: 'Valor Liquidado',
+    valor_pago_financeiro: 'Valor Pago',
+    valor_pago_processado: 'Pago Processado',
+    valor_pago_nao_processado: 'Pago Não Processado',
+    valor_pago_rp: 'Pago RP'
+};
+
+const ordemColunasConsulta = [
+    'ano_empenho','unidade_orcamentaria_codigo','unidade_orcamentaria_nome','numero_empenho',
+    'data_registro_doc_empenho','razao_social_credor','cnpj_cpf_credor_formatado',
+    'licitacao_descricao_da_modalidade','numero_processo_compra_siad','objeto_processo',
+    'elemento_despesa_codigo','elemento_despesa_descricao',
+    'valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro',
+    'valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'
+];
+
+// ============================================================
+// 2. AUXILIARES
+// ============================================================
+function mostrarLoading(show, msg) {
+    const overlay = document.getElementById('loadingOverlay');
+    if (show) overlay.classList.add('show');
+    else { overlay.classList.remove('show'); overlay.style.display = 'none'; }
+    if (msg) document.getElementById('loadingProgress').textContent = msg;
+}
+
+function formatarMoeda(valor) {
+    if (!valor && valor !== 0) return 'R$ 0,00';
+    const num = typeof valor === 'number' ? valor : parseFloat(String(valor).replace(/\./g,'').replace(',','.'));
+    if (isNaN(num)) return 'R$ 0,00';
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 2 });
+}
+
+function formatarData(dataStr) {
+    if (!dataStr || dataStr === 'NULL' || dataStr === '') return '-';
+    if (dataStr.includes('/')) return dataStr;
+    const partes = dataStr.split('-');
+    if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
+    return dataStr;
+}
+
+// Converte valor numérico para inteiro sem .0
+function formatarInteiro(valor) {
+    if (!valor && valor !== 0) return '';
+    let str = String(valor).trim();
+    // Remove .0 ou ,0 do final
+    const num = parseFloat(str.replace(',', '.'));
+    if (isNaN(num)) return str;
+    return Math.trunc(num).toString();
+}
+
+function parseCSV(texto) {
+    const linhas = texto.trim().split('\n');
+    if (linhas.length < 2) return [];
+    const cabecalhos = linhas[0].split(';').map(h => h.trim().replace(/^\uFEFF/, '').replace(/"/g, ''));
+    const dados = [];
+    for (let i = 1; i < linhas.length; i++) {
+        if (!linhas[i].trim()) continue;
+        const linha = linhas[i];
+        const valores = [];
+        let campoAtual = '', dentroAspas = false;
+        for (let j = 0; j < linha.length; j++) {
+            const char = linha[j];
+            if (char === '"') dentroAspas = !dentroAspas;
+            else if (char === ';' && !dentroAspas) { valores.push(campoAtual); campoAtual = ''; }
+            else campoAtual += char;
+        }
+        valores.push(campoAtual);
+        const obj = {};
+        cabecalhos.forEach((cab, idx) => {
+            let v = valores[idx] !== undefined ? valores[idx].trim() : '';
+            if (v === 'NULL' || v === '') v = null;
+            obj[cab] = v;
+        });
+        dados.push(obj);
+    }
+    return dados;
+}
+
+function parsearValorMonetario(v) {
+    if (!v) return 0;
+    const str = String(v).replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(str);
+    return isNaN(num) ? 0 : num;
+}
+
+function voltarAoTopo() {
+    try { if (window.parent && window.parent !== window) window.parent.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function iframeUpdateHeight() {
+    const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) + 10;
+    try { if (window.parent && window.parent !== window) window.parent.postMessage({ iframeHeight: h, height: h, type: 'resize' }, '*'); } catch(e) {}
+}
+
+function ordenarDados(dados, coluna, direcao) {
+    return [...dados].sort((a, b) => {
+        let va = a[coluna] !== undefined && a[coluna] !== null ? a[coluna] : '';
+        let vb = b[coluna] !== undefined && b[coluna] !== null ? b[coluna] : '';
+        const camposMonetarios = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+        if (camposMonetarios.includes(coluna)) {
+            va = typeof va === 'number' ? va : parsearValorMonetario(va);
+            vb = typeof vb === 'number' ? vb : parsearValorMonetario(vb);
+        } else {
+            va = String(va).toLowerCase();
+            vb = String(vb).toLowerCase();
+        }
+        return direcao === 'asc' ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0);
+    });
+}
+
+// ============================================================
+// 3. CARREGAMENTO DE DADOS
+// ============================================================
+async function carregarDados() {
+    mostrarLoading(true, 'Carregando dados de empenho...');
+    try {
+        dadosEmpenho = [];
+        dadosLicitacoes = [];
+
+        // Carregar empenhos por ano
+        for (const ano of ANOS_DISPONIVEIS) {
+            mostrarLoading(true, `Carregando empenhos ${ano}...`);
+            try {
+                const resp = await fetch(`${URL_EMPENHO_BASE}${ano}.csv`);
+                if (resp.ok) {
+                    const texto = await resp.text();
+                    const dados = parseCSV(texto);
+                    dadosEmpenho = [...dadosEmpenho, ...dados];
+                }
+            } catch(e) { console.error(`Erro empenho ${ano}:`, e); }
+
+            // Carregar licitações para cruzar objeto_processo
+            mostrarLoading(true, `Carregando licitações ${ano}...`);
+            try {
+                const resp2 = await fetch(`${URL_LICITACOES_BASE}${ano}.csv`);
+                if (resp2.ok) {
+                    const texto2 = await resp2.text();
+                    const dados2 = parseCSV(texto2);
+                    dadosLicitacoes = [...dadosLicitacoes, ...dados2];
+                }
+            } catch(e) { console.error(`Erro licitações ${ano}:`, e); }
+        }
+
+        // Mapa de licitações por numero_processo_formatado
+        const licitacoesMap = new Map();
+        dadosLicitacoes.forEach(l => {
+            if (l && l['numero_processo_formatado']) {
+                licitacoesMap.set(String(l['numero_processo_formatado']).trim(), l);
+            }
+        });
+
+        // Consolidar: enriquecer empenhos com objeto_processo das licitações
+        dadosConsolidados = dadosEmpenho.map(emp => {
+            const proc = emp['numero_processo_compra_siad'] ? String(emp['numero_processo_compra_siad']).trim() : null;
+            const lic = proc ? licitacoesMap.get(proc) : null;
+
+            return {
+                ano_empenho: emp['ano_empenho'] ? formatarInteiro(emp['ano_empenho']) : '2026',
+                unidade_orcamentaria_codigo: emp['unidade_orcamentaria_codigo'] ? formatarInteiro(emp['unidade_orcamentaria_codigo']) : '',
+                unidade_orcamentaria_nome: emp['unidade_orcamentaria_nome'] || '',
+                numero_empenho: emp['numero_empenho'] ? formatarInteiro(emp['numero_empenho']) : '',
+                data_registro_doc_empenho: emp['data_registro_doc_empenho'] || '',
+                razao_social_credor: emp['razao_social_credor'] || 'Não informado',
+                cnpj_cpf_credor_formatado: emp['cnpj_cpf_credor_formatado'] || '',
+                licitacao_descricao_da_modalidade: emp['licitacao_descricao_da_modalidade'] || (lic ? lic['procedimento_contratacao_detalhamento_1'] : '') || '',
+                numero_processo_compra_siad: proc || '',
+                objeto_processo: lic ? (lic['objeto_processo'] || '') : '',
+                elemento_despesa_codigo: emp['elemento_despesa_codigo'] ? formatarInteiro(emp['elemento_despesa_codigo']) : '',
+                elemento_despesa_descricao: emp['elemento_despesa_descricao'] || '',
+                valor_despesa_empenhada: parsearValorMonetario(emp['valor_despesa_empenhada']),
+                valor_despesa_liquidada: parsearValorMonetario(emp['valor_despesa_liquidada']),
+                valor_pago_financeiro: parsearValorMonetario(emp['valor_pago_financeiro']),
+                valor_pago_processado: parsearValorMonetario(emp['valor_pago_processado']),
+                valor_pago_nao_processado: parsearValorMonetario(emp['valor_pago_nao_processado']),
+                valor_pago_rp: parsearValorMonetario(emp['valor_pago_rp'])
+            };
+        });
+
+        dadosFiltradosConsulta = [...dadosConsolidados];
+
+        renderizarVisaoGeral();
+        renderizarConsultaEmpenho();
+        renderizarDownloads();
+
+        // Data de atualização via GitHub API
+        carregarDataAtualizacao();
+        setTimeout(iframeUpdateHeight, 500);
+
+    } catch(erro) {
+        console.error('Erro fatal:', erro);
+        document.getElementById('visao-geral-content').innerHTML = '<div class="alert alert-danger m-3">Erro ao carregar dados. Verifique sua conexão e tente novamente.</div>';
+    } finally {
+        mostrarLoading(false);
+    }
+}
+
+async function carregarDataAtualizacao() {
+    const el = document.getElementById('data-atualizacao-header');
+    try {
+        const resp = await fetch('https://api.github.com/repos/transparencia-mg/portal_despesa_empenho/commits?path=dataset/data/empenho2026.csv&per_page=1');
+        if (resp.ok) {
+            const cs = await resp.json();
+            if (cs && cs.length > 0) {
+                el.textContent = new Date(cs[0].commit.committer.date).toLocaleDateString('pt-BR');
+                return;
+            }
+        }
+    } catch(e) {}
+    el.textContent = '2026';
+}
+
+// ============================================================
+// 4. VISÃO GERAL
+// ============================================================
+function renderizarVisaoGeral() {
+    const container = document.getElementById('visao-geral-content');
+    if (!container) return;
+
+    const anosDisponiveis = [...new Set(dadosConsolidados.map(d => d.ano_empenho))].filter(Boolean).sort((a,b) => b-a);
+    const unidades = [...new Set(dadosConsolidados.map(d => d.unidade_orcamentaria_nome))].filter(Boolean).sort();
+
+    container.innerHTML = `
+    <div class="filter-container">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label class="filter-label">Ano</label>
+                <select class="form-select modern-select" id="vgFiltroAno">
+                    ${anosDisponiveis.map(a=>`<option value="${a}" ${a=='2026'?'selected':''}>${a}</option>`).join('')}
+                </select>
+            </div>
+            <div class="filter-group" style="flex:3;min-width:200px;">
+                <label class="filter-label">Unidade Orçamentária</label>
+                <input type="text" class="form-control" id="vgFiltroUnidade" list="vgUnidadeList" placeholder="Digite ou selecione...">
+                <datalist id="vgUnidadeList">${unidades.map(u=>`<option value="${u}">`).join('')}</datalist>
+            </div>
+        </div>
+        <div class="botoes-abaixo">
+            <button class="btn-pesquisa" onclick="aplicarFiltrosVG()"><i class="material-icons">search</i> Pesquisar</button>
+            <button class="btn-secondary-custom" onclick="limparFiltrosVG()"><i class="material-icons">clear</i> Limpar Filtros</button>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4" id="vgMetricas"></div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-12">
+            <div class="chart-container">
+                <div class="chart-header"><h4 class="chart-title">Despesa por Unidade Orçamentária — Top 10 (Valor Empenhado)</h4></div>
+                <div class="chart-wrapper" style="height:300px;"><canvas id="chartUnidades"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <button class="btn-export" onclick="exportarTabelaVGCSV()"><i class="material-icons">description</i> CSV</button>
+            <button class="btn-export" onclick="exportarTabelaVGPDF()"><i class="material-icons">print</i> PDF</button>
+        </div>
+        <div class="toolbar-right" style="display:flex;align-items:center;gap:8px;">
+            <input type="text" id="buscaVG" maxlength="30" placeholder="Buscar..." class="form-control" style="height:32px;font-size:12px;width:200px;padding:4px 10px;" oninput="buscarVG(this.value)">
+            <span class="table-badge" id="vgBadge">— unidades</span>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-fixed-header-container">
+            <table class="table" id="vgTable">
+                <thead>
+                    <tr>
+                        <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_codigo')">Código <i class="material-icons">unfold_more</i></th>
+                        <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_nome')">Unidade Orçamentária <i class="material-icons">unfold_more</i></th>
+                        <th class="sortable-header text-right" onclick="toggleSortVG('valor_despesa_empenhada')">Valor Empenhado <i class="material-icons">unfold_more</i></th>
+                        <th class="sortable-header text-right" onclick="toggleSortVG('valor_despesa_liquidada')">Valor Liquidado <i class="material-icons">unfold_more</i></th>
+                        <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_financeiro')">Valor Pago <i class="material-icons">unfold_more</i></th>
+                        <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_processado')">Pago Processado <i class="material-icons">unfold_more</i></th>
+                        <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_nao_processado')">Pago Não Proc. <i class="material-icons">unfold_more</i></th>
+                        <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_rp')">Pago RP <i class="material-icons">unfold_more</i></th>
+                    </tr>
+                </thead>
+                <tbody id="vgTableBody"></tbody>
+                <tfoot id="vgTableFoot"></tfoot>
+            </table>
+        </div>
+        <div class="pagination-container" id="vgPaginacao"></div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+        <button class="btn-topo" onclick="voltarAoTopo()"><i class="material-icons">arrow_upward</i> Voltar ao topo</button>
+    </div>`;
+
+    aplicarFiltrosVGInterno();
+    setTimeout(iframeUpdateHeight, 400);
+}
+
+function getVGDadosFiltrados() {
+    const ano = document.getElementById('vgFiltroAno')?.value;
+    const unidade = (document.getElementById('vgFiltroUnidade')?.value || '').toLowerCase().trim();
+    let dados = dadosConsolidados;
+    if (ano) dados = dados.filter(d => d.ano_empenho == ano);
+    if (unidade) dados = dados.filter(d => (d.unidade_orcamentaria_nome||'').toLowerCase().includes(unidade));
+    return dados;
+}
+
+function agruparUnidades(dados) {
+    const map = new Map();
+    dados.forEach(d => {
+        const key = d.unidade_orcamentaria_codigo + '|' + d.unidade_orcamentaria_nome;
+        if (!map.has(key)) map.set(key, {
+            unidade_orcamentaria_codigo: d.unidade_orcamentaria_codigo,
+            unidade_orcamentaria_nome: d.unidade_orcamentaria_nome,
+            valor_despesa_empenhada: 0, valor_despesa_liquidada: 0, valor_pago_financeiro: 0,
+            valor_pago_processado: 0, valor_pago_nao_processado: 0, valor_pago_rp: 0
+        });
+        const r = map.get(key);
+        r.valor_despesa_empenhada += d.valor_despesa_empenhada;
+        r.valor_despesa_liquidada += d.valor_despesa_liquidada;
+        r.valor_pago_financeiro += d.valor_pago_financeiro;
+        r.valor_pago_processado += d.valor_pago_processado;
+        r.valor_pago_nao_processado += d.valor_pago_nao_processado;
+        r.valor_pago_rp += d.valor_pago_rp;
+    });
+    return Array.from(map.values());
+}
+
+window._vgUnidadesOrdenadas = [];
+
+function aplicarFiltrosVGInterno() {
+    const dados = getVGDadosFiltrados();
+    const totalEmpenhos = dados.length;
+    const totalEmpenhado = dados.reduce((s,d) => s + d.valor_despesa_empenhada, 0);
+    const totalLiquidado = dados.reduce((s,d) => s + d.valor_despesa_liquidada, 0);
+    const totalPago = dados.reduce((s,d) => s + d.valor_pago_financeiro, 0);
+    const totalCredores = new Set(dados.map(d => d.cnpj_cpf_credor_formatado).filter(Boolean)).size;
+
+    // Métricas
+    document.getElementById('vgMetricas').innerHTML = `
+        <div class="col-6 col-md-3">
+            <div class="metric-card">
+                <div class="metric-header">Total de Empenhos</div>
+                <div class="metric-body"><div class="metric-value">${totalEmpenhos.toLocaleString('pt-BR')}</div><div class="metric-sublabel">registros de empenho</div></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card">
+                <div class="metric-header">Valor Empenhado</div>
+                <div class="metric-body"><div class="metric-value" style="font-size:14px">${formatarMoeda(totalEmpenhado)}</div><div class="metric-sublabel">total empenhado</div></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card">
+                <div class="metric-header">Valor Liquidado</div>
+                <div class="metric-body"><div class="metric-value" style="font-size:14px">${formatarMoeda(totalLiquidado)}</div><div class="metric-sublabel">total liquidado</div></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="metric-card">
+                <div class="metric-header">Valor Pago</div>
+                <div class="metric-body"><div class="metric-value" style="font-size:14px">${formatarMoeda(totalPago)}</div><div class="metric-sublabel">total pago financeiro</div></div>
+            </div>
+        </div>`;
+
+    // Agrupar e ordenar unidades
+    const unidades = agruparUnidades(dados);
+    window._vgUnidadesOrdenadas = ordenarDadosGenerico(unidades, sortVG.col, sortVG.dir);
+
+    // Atualizar badge
+    const badge = document.getElementById('vgBadge');
+    if (badge) badge.textContent = `${window._vgUnidadesOrdenadas.length} unidades`;
+
+    // Gráfico top 10
+    const top10 = [...unidades].sort((a,b) => b.valor_despesa_empenhada - a.valor_despesa_empenhada).slice(0,10);
+    if (chartBar) chartBar.destroy();
+    const ctx = document.getElementById('chartUnidades')?.getContext('2d');
+    if (ctx && top10.length > 0) {
+        chartBar = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: top10.map(u => u.unidade_orcamentaria_nome.substring(0,35)+'...'),
+                datasets: [
+                    { label: 'Empenhado', data: top10.map(u => u.valor_despesa_empenhada), backgroundColor: '#1a3a5c' },
+                    { label: 'Liquidado', data: top10.map(u => u.valor_despesa_liquidada), backgroundColor: '#ffc107' },
+                    { label: 'Pago', data: top10.map(u => u.valor_pago_financeiro), backgroundColor: '#28a745' }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+                plugins: {
+                    legend: { position: 'bottom', labels: { font: { size: 10 } } },
+                    tooltip: { callbacks: { label: ctx => formatarMoeda(ctx.raw) } }
+                },
+                scales: {
+                    x: { ticks: { callback: v => 'R$ ' + (v/1e6).toFixed(1) + 'M', font: { size: 9 } } },
+                    y: { ticks: { font: { size: 9 } } }
+                }
+            }
+        });
+    }
+
+    // Tabela
+    paginacaoVG.atual = 1;
+    paginacaoVG.total = Math.max(1, Math.ceil(window._vgUnidadesOrdenadas.length / paginacaoVG.porPagina));
+    atualizarTabelaVG();
+}
+
+function atualizarTabelaVG() {
+    const inicio = (paginacaoVG.atual - 1) * paginacaoVG.porPagina;
+    const fim = Math.min(inicio + paginacaoVG.porPagina, window._vgUnidadesOrdenadas.length);
+    const pagina = window._vgUnidadesOrdenadas.slice(inicio, fim);
+
+    const ano = document.getElementById('vgFiltroAno')?.value || '2026';
+
+    document.getElementById('vgTableBody').innerHTML = pagina.map(u => `
+        <tr>
+            <td>${u.unidade_orcamentaria_codigo || '-'}</td>
+            <td><a href="#" class="orgao-link" onclick="irParaConsultaEmpenho('${(u.unidade_orcamentaria_nome||'').replace(/'/g,"\\'")}','${ano}');return false;">${u.unidade_orcamentaria_nome || '-'}</a></td>
+            <td class="text-right">${formatarMoeda(u.valor_despesa_empenhada)}</td>
+            <td class="text-right">${formatarMoeda(u.valor_despesa_liquidada)}</td>
+            <td class="text-right">${formatarMoeda(u.valor_pago_financeiro)}</td>
+            <td class="text-right">${formatarMoeda(u.valor_pago_processado)}</td>
+            <td class="text-right">${formatarMoeda(u.valor_pago_nao_processado)}</td>
+            <td class="text-right">${formatarMoeda(u.valor_pago_rp)}</td>
+        </tr>`).join('');
+
+    // Totais rodapé
+    const totais = window._vgUnidadesOrdenadas.reduce((acc, u) => {
+        acc.emp += u.valor_despesa_empenhada; acc.liq += u.valor_despesa_liquidada;
+        acc.pag += u.valor_pago_financeiro; acc.proc += u.valor_pago_processado;
+        acc.naoproc += u.valor_pago_nao_processado; acc.rp += u.valor_pago_rp;
+        return acc;
+    }, { emp:0,liq:0,pag:0,proc:0,naoproc:0,rp:0 });
+
+    document.getElementById('vgTableFoot').innerHTML = `
+        <tr>
+            <td colspan="2"><strong>TOTAL GERAL</strong></td>
+            <td class="text-right"><strong>${formatarMoeda(totais.emp)}</strong></td>
+            <td class="text-right"><strong>${formatarMoeda(totais.liq)}</strong></td>
+            <td class="text-right"><strong>${formatarMoeda(totais.pag)}</strong></td>
+            <td class="text-right"><strong>${formatarMoeda(totais.proc)}</strong></td>
+            <td class="text-right"><strong>${formatarMoeda(totais.naoproc)}</strong></td>
+            <td class="text-right"><strong>${formatarMoeda(totais.rp)}</strong></td>
+        </tr>`;
+
+    renderizarPaginacaoVG();
+}
+
+function ordenarDadosGenerico(dados, coluna, direcao) {
+    const camposMonetarios = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+    return [...dados].sort((a, b) => {
+        let va = a[coluna] !== undefined && a[coluna] !== null ? a[coluna] : '';
+        let vb = b[coluna] !== undefined && b[coluna] !== null ? b[coluna] : '';
+        if (camposMonetarios.includes(coluna)) {
+            va = typeof va === 'number' ? va : parsearValorMonetario(va);
+            vb = typeof vb === 'number' ? vb : parsearValorMonetario(vb);
+        } else { va = String(va).toLowerCase(); vb = String(vb).toLowerCase(); }
+        return direcao === 'asc' ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0);
+    });
+}
+
+function toggleSortVG(col) {
+    if (sortVG.col === col) sortVG.dir = sortVG.dir === 'asc' ? 'desc' : 'asc';
+    else { sortVG.col = col; sortVG.dir = 'desc'; }
+    window._vgUnidadesOrdenadas = ordenarDadosGenerico(window._vgUnidadesOrdenadas, sortVG.col, sortVG.dir);
+    paginacaoVG.atual = 1;
+    atualizarTabelaVG();
+}
+
+window.aplicarFiltrosVG = function() { aplicarFiltrosVGInterno(); };
+
+window.limparFiltrosVG = function() {
+    const ano = document.getElementById('vgFiltroAno');
+    if (ano) ano.value = '2026';
+    const unid = document.getElementById('vgFiltroUnidade');
+    if (unid) unid.value = '';
+    aplicarFiltrosVGInterno();
+};
+
+window.buscarVG = function(termo) {
+    const t = (termo||'').toLowerCase().trim();
+    if (!t) { window._vgUnidadesOrdenadas = ordenarDadosGenerico(agruparUnidades(getVGDadosFiltrados()), sortVG.col, sortVG.dir); }
+    else { window._vgUnidadesOrdenadas = window._vgUnidadesOrdenadas.filter(u => (u.unidade_orcamentaria_nome||'').toLowerCase().includes(t) || (u.unidade_orcamentaria_codigo||'').toLowerCase().includes(t)); }
+    paginacaoVG.atual = 1;
+    paginacaoVG.total = Math.max(1, Math.ceil(window._vgUnidadesOrdenadas.length / paginacaoVG.porPagina));
+    const badge = document.getElementById('vgBadge');
+    if (badge) badge.textContent = `${window._vgUnidadesOrdenadas.length} unidades`;
+    atualizarTabelaVG();
+};
+
+// Navegar para consulta pré-filtrando por órgão
+window.irParaConsultaEmpenho = function(unidade, ano) {
+    document.getElementById('consulta-empenho-tab').click();
+    setTimeout(() => {
+        const elAno = document.getElementById('consFiltroAno');
+        const elUnid = document.getElementById('consFiltroUnidade');
+        if (elAno) elAno.value = ano || '2026';
+        if (elUnid) elUnid.value = unidade;
+        aplicarFiltrosConsultaInterno();
+    }, 300);
+};
+
+function renderizarPaginacaoVG() {
+    const container = document.getElementById('vgPaginacao');
+    if (!container || window._vgUnidadesOrdenadas.length === 0) { if(container) container.innerHTML = ''; return; }
+    const { atual, total, porPagina } = paginacaoVG;
+    const inicio = (atual-1)*porPagina+1;
+    const fim = Math.min(atual*porPagina, window._vgUnidadesOrdenadas.length);
+    let html = `<div class="pagination-info"><span>Mostrando ${inicio.toLocaleString('pt-BR')}–${fim.toLocaleString('pt-BR')} de ${window._vgUnidadesOrdenadas.length.toLocaleString('pt-BR')}</span>
+        <div class="page-size-selector"><span>Por pág:</span><select onchange="alterarPorPaginaVG(this.value)"><option value="25" ${porPagina==25?'selected':''}>25</option><option value="50" ${porPagina==50?'selected':''}>50</option><option value="100" ${porPagina==100?'selected':''}>100</option></select></div></div>`;
+    html += `<div class="pagination-controls">
+        <button onclick="mudarPaginaVG(1)" ${atual===1?'disabled':''}>«</button>
+        <button onclick="mudarPaginaVG(${atual-1})" ${atual===1?'disabled':''}>‹</button>`;
+    let ini=Math.max(1,atual-2), fim2=Math.min(total,ini+4);
+    if(ini>1){html+=`<button onclick="mudarPaginaVG(1)">1</button>`; if(ini>2)html+=`<span style="padding:0 4px">…</span>`;}
+    for(let i=ini;i<=fim2;i++) html+=`<button onclick="mudarPaginaVG(${i})" class="${i===atual?'active':''}">${i}</button>`;
+    if(fim2<total){if(fim2<total-1)html+=`<span style="padding:0 4px">…</span>`;html+=`<button onclick="mudarPaginaVG(${total})">${total}</button>`;}
+    html+=`<button onclick="mudarPaginaVG(${atual+1})" ${atual===total?'disabled':''}>›</button>
+        <button onclick="mudarPaginaVG(${total})" ${atual===total?'disabled':''}>»</button></div>`;
+    container.innerHTML = html;
+}
+
+window.mudarPaginaVG = function(p) {
+    if (p<1||p>paginacaoVG.total) return;
+    paginacaoVG.atual = p; atualizarTabelaVG();
+};
+window.alterarPorPaginaVG = function(v) {
+    paginacaoVG.porPagina = parseInt(v); paginacaoVG.atual = 1;
+    paginacaoVG.total = Math.max(1, Math.ceil(window._vgUnidadesOrdenadas.length/paginacaoVG.porPagina));
+    atualizarTabelaVG();
+};
+
+// ============================================================
+// 5. CONSULTA POR EMPENHO
+// ============================================================
+function renderizarConsultaEmpenho() {
+    const container = document.getElementById('consulta-empenho-content');
+    if (!container) return;
+
+    const anos = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
+    const unidades = [...new Set(dadosConsolidados.map(d=>d.unidade_orcamentaria_nome))].filter(Boolean).sort();
+    const codUnidades = [...new Set(dadosConsolidados.map(d=>d.unidade_orcamentaria_codigo))].filter(Boolean).sort();
+    const credores = [...new Set(dadosConsolidados.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort();
+    const modalidades = [...new Set(dadosConsolidados.map(d=>d.licitacao_descricao_da_modalidade))].filter(Boolean).sort();
+    const elementos = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
+
+    container.innerHTML = `
+    <div class="filter-container">
+        <div class="filters-row">
+            <div class="filter-group">
+                <label class="filter-label">Ano</label>
+                <select class="form-select modern-select" id="consFiltroAno">
+                    ${anos.map(a=>`<option value="${a}" ${a=='2026'?'selected':''}>${a}</option>`).join('')}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Cód. Unid. Orçamentária</label>
+                <input type="text" class="form-control" id="consFiltroCodUnidade" list="consListCodUnidade" placeholder="Digite...">
+                <datalist id="consListCodUnidade">${codUnidades.map(c=>`<option value="${c}">`).join('')}</datalist>
+            </div>
+            <div class="filter-group" style="flex:2;min-width:200px;">
+                <label class="filter-label">Unidade Orçamentária</label>
+                <input type="text" class="form-control" id="consFiltroUnidade" list="consListUnidade" placeholder="Digite ou selecione...">
+                <datalist id="consListUnidade">${unidades.map(u=>`<option value="${u}">`).join('')}</datalist>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Nº Empenho</label>
+                <input type="text" class="form-control" id="consFiltroEmpenho" placeholder="Número...">
+            </div>
+            <div class="filter-group" style="flex:2;min-width:180px;">
+                <label class="filter-label">Credor</label>
+                <input type="text" class="form-control" id="consFiltroCredor" list="consListCredor" placeholder="Digite...">
+                <datalist id="consListCredor">${credores.map(c=>`<option value="${c}">`).join('')}</datalist>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">CNPJ/CPF</label>
+                <input type="text" class="form-control" id="consFiltroCnpj" placeholder="CNPJ/CPF...">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Modalidade</label>
+                <input type="text" class="form-control" id="consFiltroModalidade" list="consListModalidade" placeholder="Digite...">
+                <datalist id="consListModalidade">${modalidades.map(m=>`<option value="${m}">`).join('')}</datalist>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Nº Processo SIAD</label>
+                <input type="text" class="form-control" id="consFiltroProcesso" placeholder="Processo...">
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Cód. Elemento</label>
+                <input type="text" class="form-control" id="consFiltroElemento" list="consListElemento" placeholder="Código...">
+                <datalist id="consListElemento">${elementos.map(e=>`<option value="${e}">`).join('')}</datalist>
+            </div>
+            <div class="filter-group" style="flex:2;min-width:180px;">
+                <label class="filter-label">Descrição Elemento</label>
+                <input type="text" class="form-control" id="consFiltroDescElemento" placeholder="Palavra-chave...">
+            </div>
+            <div class="filter-group" style="flex:2;min-width:200px;">
+                <label class="filter-label">Objeto do Processo</label>
+                <input type="text" class="form-control" id="consFiltroObjeto" placeholder="Palavra-chave no objeto...">
+            </div>
+        </div>
+        <div class="botoes-abaixo">
+            <button class="btn-pesquisa" onclick="aplicarFiltrosConsultaInterno()"><i class="material-icons">search</i> Pesquisar</button>
+            <button class="btn-secondary-custom" onclick="limparFiltrosConsulta()"><i class="material-icons">clear</i> Limpar Filtros</button>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <button class="btn-export" onclick="exportarConsultaCSV()"><i class="material-icons">description</i> CSV</button>
+            <button class="btn-export" onclick="exportarConsultaPDF()"><i class="material-icons">print</i> PDF</button>
+            ${renderizarSeletorColunas()}
+        </div>
+        <div class="toolbar-right" style="display:flex;align-items:center;gap:8px;">
+            <input type="text" id="buscaConsulta" maxlength="30" placeholder="Buscar registros..." class="form-control" style="height:32px;font-size:12px;width:220px;padding:4px 10px;" oninput="buscarConsulta(this.value)">
+            <span class="table-badge" id="consultaBadge">${dadosFiltradosConsulta.length} empenhos</span>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <div class="table-fixed-header-container">
+            <table class="table" id="consultaTable">
+                <thead><tr id="consultaTheadRow">${gerarCabecalhosConsulta()}</tr></thead>
+                <tbody id="consultaTableBody"></tbody>
+                <tfoot id="consultaTableFoot"></tfoot>
+            </table>
+        </div>
+        <div class="pagination-container" id="consultaPaginacao"></div>
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+        <button class="btn-topo" onclick="voltarAoTopo()"><i class="material-icons">arrow_upward</i> Voltar ao topo</button>
+    </div>`;
+
+    dadosFiltradosConsulta = dadosConsolidados.filter(d => d.ano_empenho == '2026');
+    dadosFiltradosConsulta = ordenarDadosGenerico(dadosFiltradosConsulta, sortConsulta.col, sortConsulta.dir);
+    paginacaoConsulta.atual = 1;
+    paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
+    atualizarTabelaConsulta();
+}
+
+function gerarCabecalhosConsulta() {
+    let html = '';
+    for (const col of ordemColunasConsulta) {
+        const fixo = colunasFixasConsulta.includes(col);
+        if (!fixo && !colunasVisiveisConsulta[col]) continue;
+        const camposMonetarios = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+        const alinhDir = camposMonetarios.includes(col) ? ' text-right' : '';
+        html += `<th class="sortable-header${alinhDir}" onclick="toggleSortConsulta('${col}')">${nomesColunas[col]||col} <i class="material-icons">unfold_more</i></th>`;
+    }
+    html += '<th class="text-center">Ações</th>';
+    return html;
+}
+
+function atualizarTabelaConsulta() {
+    const inicio = (paginacaoConsulta.atual - 1) * paginacaoConsulta.porPagina;
+    const fim = Math.min(inicio + paginacaoConsulta.porPagina, dadosFiltradosConsulta.length);
+    const pagina = dadosFiltradosConsulta.slice(inicio, fim);
+    const camposMonetarios = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+
+    document.getElementById('consultaTableBody').innerHTML = pagina.map(item => {
+        let row = '<tr>';
+        for (const col of ordemColunasConsulta) {
+            const fixo = colunasFixasConsulta.includes(col);
+            if (!fixo && !colunasVisiveisConsulta[col]) continue;
+            let valor = item[col];
+            if (col === 'numero_empenho') {
+                row += `<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${(String(item.numero_empenho)||'').replace(/'/g,"\\'")}','${(String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
+            } else if (col === 'objeto_processo') {
+                const txt = valor || '';
+                row += `<td title="${txt.replace(/"/g,'&quot;')}">${txt.substring(0,45)}${txt.length>45?'...':''}</td>`;
+            } else if (col === 'data_registro_doc_empenho') {
+                row += `<td>${formatarData(valor)}</td>`;
+            } else if (camposMonetarios.includes(col)) {
+                row += `<td class="text-right">${formatarMoeda(valor)}</td>`;
+            } else {
+                row += `<td>${valor||'-'}</td>`;
+            }
+        }
+        const numEmp = (String(item.numero_empenho)||'').replace(/'/g,"\\'");
+        const codUnid = (String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'");
+        row += `<td class="text-center"><button class="btn-action" onclick="verDetalhesEmpenho('${numEmp}','${codUnid}')"><i class="material-icons" style="font-size:15px">visibility</i></button></td>`;
+        row += '</tr>';
+        return row;
+    }).join('');
+
+    // Totais rodapé
+    const totais = dadosFiltradosConsulta.reduce((acc, d) => {
+        acc.emp += d.valor_despesa_empenhada; acc.liq += d.valor_despesa_liquidada;
+        acc.pag += d.valor_pago_financeiro; acc.proc += d.valor_pago_processado;
+        acc.naoproc += d.valor_pago_nao_processado; acc.rp += d.valor_pago_rp;
+        return acc;
+    }, { emp:0,liq:0,pag:0,proc:0,naoproc:0,rp:0 });
+
+    const numCols = ordemColunasConsulta.filter(c => colunasFixasConsulta.includes(c) || colunasVisiveisConsulta[c]).length;
+    let footHtml = '<tr>';
+    let primeiroMonetario = true;
+    let colsAntes = 0;
+    for (const col of ordemColunasConsulta) {
+        if (!colunasFixasConsulta.includes(col) && !colunasVisiveisConsulta[col]) continue;
+        const camposMonetarios = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+        if (!camposMonetarios.includes(col)) { colsAntes++; footHtml += `<td></td>`; continue; }
+        if (primeiroMonetario) {
+            // Reescreve primeira célula monetária com colspan
+            footHtml = '<tr><td colspan="' + colsAntes + '"><strong>TOTAL</strong></td>';
+            primeiroMonetario = false;
+        }
+        const mapVal = { valor_despesa_empenhada: totais.emp, valor_despesa_liquidada: totais.liq, valor_pago_financeiro: totais.pag, valor_pago_processado: totais.proc, valor_pago_nao_processado: totais.naoproc, valor_pago_rp: totais.rp };
+        footHtml += `<td class="text-right"><strong>${formatarMoeda(mapVal[col]||0)}</strong></td>`;
+    }
+    footHtml += '<td></td></tr>';
+    document.getElementById('consultaTableFoot').innerHTML = footHtml;
+
+    const badge = document.getElementById('consultaBadge');
+    if (badge) badge.textContent = `${dadosFiltradosConsulta.length} empenhos`;
+    renderizarPaginacaoConsulta();
+}
+
+function toggleSortConsulta(col) {
+    if (sortConsulta.col === col) sortConsulta.dir = sortConsulta.dir === 'asc' ? 'desc' : 'asc';
+    else { sortConsulta.col = col; sortConsulta.dir = 'desc'; }
+    dadosFiltradosConsulta = ordenarDadosGenerico(dadosFiltradosConsulta, sortConsulta.col, sortConsulta.dir);
+    paginacaoConsulta.atual = 1;
+    atualizarTabelaConsulta();
+}
+
+window.aplicarFiltrosConsultaInterno = function() {
+    const ano = document.getElementById('consFiltroAno')?.value;
+    const codUnid = (document.getElementById('consFiltroCodUnidade')?.value||'').toLowerCase().trim();
+    const unidade = (document.getElementById('consFiltroUnidade')?.value||'').toLowerCase().trim();
+    const empenho = (document.getElementById('consFiltroEmpenho')?.value||'').toLowerCase().trim();
+    const credor = (document.getElementById('consFiltroCredor')?.value||'').toLowerCase().trim();
+    const cnpj = (document.getElementById('consFiltroCnpj')?.value||'').toLowerCase().trim();
+    const modalidade = (document.getElementById('consFiltroModalidade')?.value||'').toLowerCase().trim();
+    const processo = (document.getElementById('consFiltroProcesso')?.value||'').toLowerCase().trim();
+    const elemento = (document.getElementById('consFiltroElemento')?.value||'').toLowerCase().trim();
+    const descElem = (document.getElementById('consFiltroDescElemento')?.value||'').toLowerCase().trim();
+    const objeto = (document.getElementById('consFiltroObjeto')?.value||'').toLowerCase().trim();
+
+    dadosFiltradosConsulta = dadosConsolidados.filter(d => {
+        if (ano && d.ano_empenho != ano) return false;
+        if (codUnid && !(d.unidade_orcamentaria_codigo||'').toLowerCase().includes(codUnid)) return false;
+        if (unidade && !(d.unidade_orcamentaria_nome||'').toLowerCase().includes(unidade)) return false;
+        if (empenho && !(d.numero_empenho||'').toLowerCase().includes(empenho)) return false;
+        if (credor && !(d.razao_social_credor||'').toLowerCase().includes(credor)) return false;
+        if (cnpj && !(d.cnpj_cpf_credor_formatado||'').toLowerCase().includes(cnpj)) return false;
+        if (modalidade && !(d.licitacao_descricao_da_modalidade||'').toLowerCase().includes(modalidade)) return false;
+        if (processo && !(d.numero_processo_compra_siad||'').toLowerCase().includes(processo)) return false;
+        if (elemento && !(d.elemento_despesa_codigo||'').toLowerCase().includes(elemento)) return false;
+        if (descElem && !(d.elemento_despesa_descricao||'').toLowerCase().includes(descElem)) return false;
+        if (objeto && !(d.objeto_processo||'').toLowerCase().includes(objeto)) return false;
+        return true;
+    });
+
+    dadosFiltradosConsulta = ordenarDadosGenerico(dadosFiltradosConsulta, sortConsulta.col, sortConsulta.dir);
+    paginacaoConsulta.atual = 1;
+    paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
+    atualizarTabelaConsulta();
+};
+
+window.limparFiltrosConsulta = function() {
+    ['consFiltroAno','consFiltroCodUnidade','consFiltroUnidade','consFiltroEmpenho','consFiltroCredor','consFiltroCnpj','consFiltroModalidade','consFiltroProcesso','consFiltroElemento','consFiltroDescElemento','consFiltroObjeto'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = id === 'consFiltroAno' ? '2026' : '';
+    });
+    dadosFiltradosConsulta = dadosConsolidados.filter(d => d.ano_empenho == '2026');
+    dadosFiltradosConsulta = ordenarDadosGenerico(dadosFiltradosConsulta, sortConsulta.col, sortConsulta.dir);
+    paginacaoConsulta.atual = 1;
+    paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
+    atualizarTabelaConsulta();
+};
+
+window.buscarConsulta = function(termo) {
+    // Busca rápida na página atual
+    const t = (termo||'').toLowerCase().trim();
+    if (!t) { atualizarTabelaConsulta(); return; }
+    const base = dadosFiltradosConsulta;
+    const filtrado = base.filter(d =>
+        (d.numero_empenho||'').toLowerCase().includes(t) ||
+        (d.unidade_orcamentaria_nome||'').toLowerCase().includes(t) ||
+        (d.razao_social_credor||'').toLowerCase().includes(t) ||
+        (d.objeto_processo||'').toLowerCase().includes(t) ||
+        (d.elemento_despesa_descricao||'').toLowerCase().includes(t) ||
+        (d.numero_processo_compra_siad||'').toLowerCase().includes(t)
+    );
+    const inicio = 0, fim = Math.min(paginacaoConsulta.porPagina, filtrado.length);
+    const camposMonetarios = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+    document.getElementById('consultaTableBody').innerHTML = filtrado.slice(inicio, fim).map(item => {
+        let row = '<tr>';
+        for (const col of ordemColunasConsulta) {
+            if (!colunasFixasConsulta.includes(col) && !colunasVisiveisConsulta[col]) continue;
+            let valor = item[col];
+            if (col === 'numero_empenho') {
+                row += `<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${(String(item.numero_empenho)||'').replace(/'/g,"\\'")}','${(String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
+            } else if (col === 'objeto_processo') {
+                const txt = valor || '';
+                row += `<td title="${txt.replace(/"/g,'&quot;')}">${txt.substring(0,45)}${txt.length>45?'...':''}</td>`;
+            } else if (col === 'data_registro_doc_empenho') {
+                row += `<td>${formatarData(valor)}</td>`;
+            } else if (camposMonetarios.includes(col)) {
+                row += `<td class="text-right">${formatarMoeda(valor)}</td>`;
+            } else {
+                row += `<td>${valor||'-'}</td>`;
+            }
+        }
+        const numEmp = (String(item.numero_empenho)||'').replace(/'/g,"\\'");
+        const codUnid = (String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'");
+        row += `<td class="text-center"><button class="btn-action" onclick="verDetalhesEmpenho('${numEmp}','${codUnid}')"><i class="material-icons" style="font-size:15px">visibility</i></button></td></tr>`;
+        return row;
+    }).join('');
+    const badge = document.getElementById('consultaBadge');
+    if (badge) badge.textContent = `${filtrado.length} empenhos`;
+};
+
+function renderizarPaginacaoConsulta() {
+    const container = document.getElementById('consultaPaginacao');
+    if (!container || dadosFiltradosConsulta.length === 0) { if(container) container.innerHTML = ''; return; }
+    const { atual, total, porPagina } = paginacaoConsulta;
+    const inicio = (atual-1)*porPagina+1;
+    const fim = Math.min(atual*porPagina, dadosFiltradosConsulta.length);
+    let html = `<div class="pagination-info"><span>Mostrando ${inicio.toLocaleString('pt-BR')}–${fim.toLocaleString('pt-BR')} de ${dadosFiltradosConsulta.length.toLocaleString('pt-BR')}</span>
+        <div class="page-size-selector"><span>Por pág:</span><select onchange="alterarPorPaginaConsulta(this.value)">
+        <option value="25" ${porPagina==25?'selected':''}>25</option>
+        <option value="50" ${porPagina==50?'selected':''}>50</option>
+        <option value="100" ${porPagina==100?'selected':''}>100</option></select></div></div>`;
+    html += `<div class="pagination-controls">
+        <button onclick="mudarPaginaConsulta(1)" ${atual===1?'disabled':''}>«</button>
+        <button onclick="mudarPaginaConsulta(${atual-1})" ${atual===1?'disabled':''}>‹</button>`;
+    let ini=Math.max(1,atual-2), fim2=Math.min(total,ini+4);
+    if(ini>1){html+=`<button onclick="mudarPaginaConsulta(1)">1</button>`;if(ini>2)html+=`<span style="padding:0 4px">…</span>`;}
+    for(let i=ini;i<=fim2;i++) html+=`<button onclick="mudarPaginaConsulta(${i})" class="${i===atual?'active':''}">${i}</button>`;
+    if(fim2<total){if(fim2<total-1)html+=`<span style="padding:0 4px">…</span>`;html+=`<button onclick="mudarPaginaConsulta(${total})">${total}</button>`;}
+    html+=`<button onclick="mudarPaginaConsulta(${atual+1})" ${atual===total?'disabled':''}>›</button>
+        <button onclick="mudarPaginaConsulta(${total})" ${atual===total?'disabled':''}>»</button></div>`;
+    html+=`<div class="page-input"><input type="number" id="irPagConsulta" min="1" max="${total}" value="${atual}" onkeypress="if(event.key==='Enter')irParaPaginaConsulta()"><button onclick="irParaPaginaConsulta()">Ir</button></div>`;
+    container.innerHTML = html;
+}
+
+window.mudarPaginaConsulta = function(p) {
+    if (p<1||p>paginacaoConsulta.total) return;
+    paginacaoConsulta.atual = p; atualizarTabelaConsulta();
+};
+window.alterarPorPaginaConsulta = function(v) {
+    paginacaoConsulta.porPagina = parseInt(v); paginacaoConsulta.atual = 1;
+    paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length/paginacaoConsulta.porPagina));
+    atualizarTabelaConsulta();
+};
+window.irParaPaginaConsulta = function() {
+    const input = document.getElementById('irPagConsulta');
+    if (!input) return;
+    let p = parseInt(input.value);
+    if (isNaN(p)||p<1) p=1; if(p>paginacaoConsulta.total) p=paginacaoConsulta.total;
+    mudarPaginaConsulta(p);
+};
+
+// ============================================================
+// 6. SELETOR DE COLUNAS
+// ============================================================
+function renderizarSeletorColunas() {
+    return `<div class="column-selector">
+        <button class="btn-export" onclick="toggleColumnSelectorConsulta()"><i class="material-icons">view_column</i> Colunas</button>
+        <div class="column-selector-dropdown" id="columnSelectorDropdownConsulta">
+            <div class="column-selector-header"><h6>Selecionar Colunas</h6><span class="column-selector-close" onclick="toggleColumnSelectorConsulta()">✕</span></div>
+            ${ordemColunasConsulta.map(col => {
+                const fixo = colunasFixasConsulta.includes(col);
+                if (fixo) return `<div class="column-selector-item"><span class="fixed-column-badge">Fixa</span><label>${nomesColunas[col]||col}</label></div>`;
+                return `<div class="column-selector-item"><input type="checkbox" id="col_${col}" ${colunasVisiveisConsulta[col]?'checked':''} onchange="atualizarColunaConsulta('${col}',this.checked)"><label for="col_${col}">${nomesColunas[col]||col}</label></div>`;
+            }).join('')}
+            <div class="mt-1 pt-1 border-top text-muted" style="font-size:10px;padding:6px 8px"><i class="fas fa-info-circle"></i> Colunas fixas não podem ser removidas</div>
+        </div>
+    </div>`;
+}
+
+window.toggleColumnSelectorConsulta = function() { document.getElementById('columnSelectorDropdownConsulta')?.classList.toggle('show'); };
+window.atualizarColunaConsulta = function(col, checked) {
+    colunasVisiveisConsulta[col] = checked;
+    const tr = document.getElementById('consultaTheadRow');
+    if (tr) tr.innerHTML = gerarCabecalhosConsulta();
+    atualizarTabelaConsulta();
+};
+
+// ============================================================
+// 7. MODAL DETALHES
+// ============================================================
+window.verDetalhesEmpenho = function(numEmpenho, codUnidade) {
+    const item = dadosConsolidados.find(d =>
+        String(d.numero_empenho) === String(numEmpenho) &&
+        (String(d.unidade_orcamentaria_codigo) === String(codUnidade) || !codUnidade)
+    );
+    if (!item) return;
+
+    document.getElementById('modalContent').innerHTML = `
+        <div class="row">
+            <div class="col-md-6">
+                <div class="info-card primary">
+                    <div class="info-label">Nº Empenho</div>
+                    <div class="info-value highlight">${item.numero_empenho||'-'}</div>
+                    <div class="info-label mt-2">Ano</div>
+                    <div class="info-value">${item.ano_empenho||'-'}</div>
+                    <div class="info-label mt-2">Data Registro</div>
+                    <div class="info-value">${formatarData(item.data_registro_doc_empenho)}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-card">
+                    <div class="info-label">Unidade Orçamentária</div>
+                    <div class="info-value">${item.unidade_orcamentaria_nome||'-'}</div>
+                    <div class="info-label mt-2">Código Unidade</div>
+                    <div class="info-value">${item.unidade_orcamentaria_codigo||'-'}</div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-md-6">
+                <div class="info-card">
+                    <div class="info-label">Credor (Beneficiário)</div>
+                    <div class="info-value">${item.razao_social_credor||'-'}</div>
+                    <div class="info-label mt-2">CNPJ/CPF</div>
+                    <div class="info-value">${item.cnpj_cpf_credor_formatado||'-'}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-card">
+                    <div class="info-label">Modalidade de Licitação</div>
+                    <div class="info-value">${item.licitacao_descricao_da_modalidade||'-'}</div>
+                    <div class="info-label mt-2">Nº Processo Compra (SIAD)</div>
+                    <div class="info-value">${item.numero_processo_compra_siad||'-'}</div>
+                    <div class="info-label mt-2">Objeto do Processo</div>
+                    <div class="info-value">${item.objeto_processo||'-'}</div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-2">
+            <div class="col-md-6">
+                <div class="info-card">
+                    <div class="info-label">Elemento de Despesa</div>
+                    <div class="info-value">${item.elemento_despesa_codigo||'-'} — ${item.elemento_despesa_descricao||'-'}</div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="info-card primary">
+                    <div class="info-label">Valores Financeiros</div>
+                    <div class="info-value"><strong>Empenhado:</strong> <span style="color:#1a3a5c;font-weight:700">${formatarMoeda(item.valor_despesa_empenhada)}</span></div>
+                    <div class="info-value"><strong>Liquidado:</strong> ${formatarMoeda(item.valor_despesa_liquidada)}</div>
+                    <div class="info-value"><strong>Pago Financeiro:</strong> ${formatarMoeda(item.valor_pago_financeiro)}</div>
+                    <div class="info-value"><strong>Pago Processado:</strong> ${formatarMoeda(item.valor_pago_processado)}</div>
+                    <div class="info-value"><strong>Pago Não Processado:</strong> ${formatarMoeda(item.valor_pago_nao_processado)}</div>
+                    <div class="info-value"><strong>Pago RP:</strong> ${formatarMoeda(item.valor_pago_rp)}</div>
+                </div>
+            </div>
+        </div>`;
+
+    new bootstrap.Modal(document.getElementById('detailModal')).show();
+};
+
+// ============================================================
+// 8. EXPORTAÇÕES
+// ============================================================
+window.exportarTabelaVGCSV = function() {
+    const headers = ['Código','Unidade Orçamentária','Valor Empenhado','Valor Liquidado','Valor Pago','Pago Processado','Pago Não Processado','Pago RP'];
+    const rows = window._vgUnidadesOrdenadas.map(u => [u.unidade_orcamentaria_codigo,u.unidade_orcamentaria_nome,u.valor_despesa_empenhada,u.valor_despesa_liquidada,u.valor_pago_financeiro,u.valor_pago_processado,u.valor_pago_nao_processado,u.valor_pago_rp]);
+    const csv = [headers.join(';'), ...rows.map(r=>r.map(c=>`"${c||''}"`).join(';'))].join('\n');
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'visao_geral_empenhos.csv'; a.click();
+};
+
+window.exportarTabelaVGPDF = function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(12); doc.text('Visão Geral — Despesa por Empenho', 14, 12);
+    doc.setFontSize(8); doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, 14, 18);
+    const body = (window._vgUnidadesOrdenadas||[]).slice(0,100).map(u=>[u.unidade_orcamentaria_codigo||'-',u.unidade_orcamentaria_nome||'-',formatarMoeda(u.valor_despesa_empenhada),formatarMoeda(u.valor_despesa_liquidada),formatarMoeda(u.valor_pago_financeiro),formatarMoeda(u.valor_pago_rp)]);
+    doc.autoTable({ head:[['Código','Unidade Orçamentária','Empenhado','Liquidado','Pago','Pago RP']], body, startY:22, headStyles:{fillColor:[32,68,93]}, styles:{fontSize:7} });
+    doc.save('visao_geral_empenhos.pdf');
+};
+
+window.exportarConsultaCSV = function() {
+    const headers = ordemColunasConsulta.filter(c=>colunasFixasConsulta.includes(c)||colunasVisiveisConsulta[c]).map(c=>nomesColunas[c]||c);
+    const rows = dadosFiltradosConsulta.map(item => ordemColunasConsulta.filter(c=>colunasFixasConsulta.includes(c)||colunasVisiveisConsulta[c]).map(c=>{
+        let v = item[c];
+        if (c==='data_registro_doc_empenho') v = formatarData(v);
+        return v||'';
+    }));
+    const csv = [headers.join(';'), ...rows.map(r=>r.map(c=>`"${String(c||'').replace(/"/g,'""')}"`).join(';'))].join('\n');
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'consulta_empenhos.csv'; a.click();
+};
+
+window.exportarConsultaPDF = function() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    doc.setFontSize(12); doc.text('Consulta por Empenho — Transparência MG', 14, 12);
+    doc.setFontSize(8); doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')} | ${dadosFiltradosConsulta.length} registros`, 14, 18);
+    const body = dadosFiltradosConsulta.slice(0,100).map(d=>[d.ano_empenho||'-',d.unidade_orcamentaria_nome||'-',d.numero_empenho||'-',formatarData(d.data_registro_doc_empenho),d.razao_social_credor||'-',d.elemento_despesa_codigo||'-',formatarMoeda(d.valor_despesa_empenhada),formatarMoeda(d.valor_despesa_liquidada),formatarMoeda(d.valor_pago_financeiro)]);
+    doc.autoTable({ head:[['Ano','Unidade','Empenho','Data','Credor','Elemento','Empenhado','Liquidado','Pago']], body, startY:22, headStyles:{fillColor:[32,68,93]}, styles:{fontSize:6} });
+    doc.save('consulta_empenhos.pdf');
+};
+
+window.exportarModalCSV = function() {
+    const content = document.getElementById('modalContent');
+    if (!content) return;
+    const labels = content.querySelectorAll('.info-label');
+    const values = content.querySelectorAll('.info-value');
+    const rows = [['Campo','Valor']];
+    labels.forEach((lbl,i) => { const v = values[i] ? values[i].textContent.trim() : '-'; rows.push([lbl.textContent.trim(), v]); });
+    const csv = rows.map(r=>r.map(c=>`"${(c||'').replace(/"/g,'""')}"`).join(';')).join('\n');
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'detalhes_empenho.csv'; a.click();
+};
+
+// ============================================================
+// 9. DOWNLOADS
+// ============================================================
+function renderizarDownloads() {
+    const container = document.getElementById('downloads-content');
+    if (!container) return;
+
+    container.innerHTML = `
+    <div class="filter-container">
+        <div style="text-align:center;padding:16px 0 8px;">
+            <i class="material-icons" style="font-size:48px;color:#20445d;">cloud_download</i>
+            <h5 style="margin-top:8px;margin-bottom:4px;font-size:15px;">Portal de Dados Abertos</h5>
+            <p style="color:#6c757d;font-size:13px;margin-bottom:12px;">Acesse os dados completos de Despesas por Empenho do Estado de Minas Gerais</p>
+            <a href="${PORTAL_DADOS_ABERTOS_URL}" target="_blank" class="btn-pesquisa text-decoration-none">
+                <i class="material-icons">open_in_new</i> Acessar Portal de Dados MG
+            </a>
+        </div>
+    </div>
+
+    <div class="filter-container">
+        <h5 style="font-size:14px;font-weight:700;color:#20445d;margin-bottom:16px;"><i class="material-icons" style="vertical-align:middle;margin-right:4px;">info</i> Metadados — Dicionário de Variáveis</h5>
+
+        <div class="metadata-container mb-3">
+            <div class="metadata-header"><i class="material-icons me-2" style="vertical-align:middle">receipt</i> Empenhos (empenhoAAAA.csv)</div>
+            <div class="table-responsive">
+                <table class="metadata-table">
+                    <thead><tr><th>Campo</th><th>Descrição</th><th>Tipo</th><th>Observação</th></tr></thead>
+                    <tbody>
+                        <tr><td><code>ano_empenho</code></td><td>Ano de referência do empenho</td><td>Número (AAAA)</td><td>Ano fiscal do registro</td></tr>
+                        <tr><td><code>unidade_orcamentaria_codigo</code></td><td>Código numérico da unidade orçamentária / órgão</td><td>Número inteiro</td><td>Identificador único do órgão no SIAFI/SIAD</td></tr>
+                        <tr><td><code>unidade_orcamentaria_nome</code></td><td>Nome da unidade orçamentária / órgão responsável pela despesa</td><td>Texto</td><td>Nome oficial do órgão ou entidade</td></tr>
+                        <tr><td><code>numero_empenho</code></td><td>Número sequencial do empenho no exercício</td><td>Número inteiro</td><td>Identificador do empenho dentro da unidade orçamentária</td></tr>
+                        <tr><td><code>data_registro_doc_empenho</code></td><td>Data de registro do documento de empenho</td><td>Data (DD/MM/AAAA)</td><td>Data em que o empenho foi registrado no sistema</td></tr>
+                        <tr><td><code>numero_processo_compra_siad</code></td><td>Número do processo de compra no SIAD (Sistema Integrado de Administração)</td><td>Texto</td><td>Chave de ligação com o dataset de licitações (<code>numero_processo_formatado</code>)</td></tr>
+                        <tr><td><code>licitacao_descricao_da_modalidade</code></td><td>Modalidade da licitação utilizada na contratação</td><td>Texto</td><td>Ex: Pregão Eletrônico, Dispensa de Licitação, Inexigibilidade</td></tr>
+                        <tr><td><code>razao_social_credor</code></td><td>Razão social ou nome do credor / beneficiário do pagamento</td><td>Texto</td><td>Nome da empresa ou pessoa física contratada</td></tr>
+                        <tr><td><code>cnpj_cpf_credor_formatado</code></td><td>CNPJ ou CPF do credor formatado</td><td>Texto</td><td>Documento de identificação do beneficiário</td></tr>
+                        <tr><td><code>elemento_despesa_codigo</code></td><td>Código do elemento de despesa conforme classificação orçamentária</td><td>Número inteiro</td><td>Classificação da natureza da despesa (ex: 30 = Material de Consumo)</td></tr>
+                        <tr><td><code>elemento_despesa_descricao</code></td><td>Descrição do elemento de despesa</td><td>Texto</td><td>Nome do elemento de despesa na classificação orçamentária</td></tr>
+                        <tr><td><code>valor_despesa_empenhada</code></td><td>Valor total empenhado no documento</td><td>Moeda (R$)</td><td>Reserva orçamentária realizada para a despesa</td></tr>
+                        <tr><td><code>valor_despesa_liquidada</code></td><td>Valor total liquidado</td><td>Moeda (R$)</td><td>Valor da despesa após recebimento e verificação do serviço/produto</td></tr>
+                        <tr><td><code>valor_pago_financeiro</code></td><td>Valor total pago financeiramente</td><td>Moeda (R$)</td><td>Soma dos pagamentos efetivamente realizados</td></tr>
+                        <tr><td><code>valor_pago_processado</code></td><td>Valor pago de restos a pagar processados</td><td>Moeda (R$)</td><td>Pagamento de RP já liquidados em exercícios anteriores</td></tr>
+                        <tr><td><code>valor_pago_nao_processado</code></td><td>Valor pago de restos a pagar não processados</td><td>Moeda (R$)</td><td>Pagamento de RP ainda não liquidados</td></tr>
+                        <tr><td><code>valor_pago_rp</code></td><td>Valor total pago de restos a pagar</td><td>Moeda (R$)</td><td>Total de pagamentos de RP (processados + não processados)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="metadata-container">
+            <div class="metadata-header"><i class="material-icons me-2" style="vertical-align:middle">link</i> Relacionamento com Dataset de Licitações</div>
+            <div class="table-responsive">
+                <table class="metadata-table">
+                    <thead><tr><th>Campo Empenho</th><th>Campo Licitação</th><th>Descrição do Relacionamento</th></tr></thead>
+                    <tbody>
+                        <tr>
+                            <td><code>numero_processo_compra_siad</code></td>
+                            <td><code>numero_processo_formatado</code></td>
+                            <td>Chave primária para junção entre empenhos e licitações. Permite obter o <code>objeto_processo</code> e demais dados da licitação correspondente ao empenho.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="background:#f0f7ff;border-left:4px solid #1a3a5c;padding:12px 16px;margin:12px 16px;border-radius:0 6px 6px 0;font-size:12px;color:#1a3a5c;">
+                <strong><i class="material-icons" style="font-size:14px;vertical-align:middle">info</i> Nota técnica:</strong>
+                Nem todos os empenhos possuem processo de compra correspondente nas licitações. Empenhos sem processo de compra (campo vazio) referem-se a despesas sem licitação prévia (folha de pessoal, transferências, etc.) ou a contratos não disponíveis no dataset de licitações.
+            </div>
+        </div>
+    </div>`;
+
+    setTimeout(iframeUpdateHeight, 300);
+}
+
+// ============================================================
+// 10. INICIALIZAÇÃO
+// ============================================================
+document.addEventListener('click', e => {
+    if (!e.target.closest('.column-selector')) {
+        document.querySelectorAll('.column-selector-dropdown').forEach(d => d.classList.remove('show'));
+    }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    carregarDados();
+    document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tab => {
+        tab.addEventListener('shown.bs.tab', () => setTimeout(iframeUpdateHeight, 300));
+    });
+    window.addEventListener('resize', () => { clearTimeout(window.resizeTimer); window.resizeTimer = setTimeout(iframeUpdateHeight, 250); });
+});
+
+(function() {
+    function sendHeight() {
+        const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) + 10;
+        try { if(window.parent&&window.parent!==window) window.parent.postMessage({iframeHeight:h,iframeResize:true,type:'resize'},'*'); } catch(e) {}
+    }
+    if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.body);
+    else { window.addEventListener('resize', sendHeight); setInterval(sendHeight, 2000); }
+    sendHeight();
+})();
+</script>
+</body>
+</html>
