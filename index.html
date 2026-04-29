@@ -571,10 +571,10 @@
 // ============================================================
 // 1. CONFIGURAÇÕES
 // ============================================================
-const URL_EMPENHO_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/refs/heads/main/dataset/data/empenho';
-const URL_LICITACOES_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_licitacoes_mg/refs/heads/main/dataset/data/licitacoes';
+const URL_EMPENHO_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/main/dataset/data/empenho';
+const URL_LICITACOES_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_licitacoes_mg/main/dataset/data/licitacoes';
 const PORTAL_DADOS_ABERTOS_URL = 'https://dados.mg.gov.br/dataset/portal_despesa_empenho';
-const ANOS_DISPONIVEIS = [2026]; // Adicionar anos conforme disponíveis
+const ANOS_DISPONIVEIS = [2022, 2023, 2024, 2025, 2026];
 
 let dadosEmpenho = [];
 let dadosLicitacoes = [];
@@ -585,7 +585,7 @@ let chartBar = null;
 let paginacaoVG = { atual: 1, total: 1, porPagina: 50 };
 let paginacaoConsulta = { atual: 1, total: 1, porPagina: 50 };
 
-let sortVG = { col: 'valor_despesa_empenhada', dir: 'desc' };
+let sortVG = { col: 'valor_pago_financeiro', dir: 'desc' };
 let sortConsulta = { col: 'numero_empenho', dir: 'desc' };
 
 let colunasVisiveisConsulta = {
@@ -598,18 +598,21 @@ let colunasVisiveisConsulta = {
     cnpj_cpf_credor_formatado: true,
     licitacao_descricao_da_modalidade: true,
     numero_processo_compra_siad: true,
+    _lic_numero_contrato: true,
+    _lic_link_processo: true,
+    _lic_link_contrato: true,
     objeto_processo: true,
     elemento_despesa_codigo: true,
     elemento_despesa_descricao: true,
-    valor_despesa_empenhada: true,
-    valor_despesa_liquidada: true,
+    valor_despesa_empenhada: false,
+    valor_despesa_liquidada: false,
     valor_pago_financeiro: true,
     valor_pago_processado: false,
     valor_pago_nao_processado: false,
     valor_pago_rp: false
 };
 
-const colunasFixasConsulta = ['numero_empenho', 'unidade_orcamentaria_nome', 'valor_despesa_empenhada'];
+const colunasFixasConsulta = ['numero_empenho', 'unidade_orcamentaria_nome', 'valor_pago_financeiro'];
 
 const nomesColunas = {
     ano_empenho: 'Ano',
@@ -621,6 +624,9 @@ const nomesColunas = {
     cnpj_cpf_credor_formatado: 'CNPJ/CPF',
     licitacao_descricao_da_modalidade: 'Modalidade',
     numero_processo_compra_siad: 'Nº Processo (SIAD)',
+    _lic_numero_contrato: 'Nº Contrato',
+    _lic_link_processo: 'Link Processo Compra',
+    _lic_link_contrato: 'Link Contrato',
     objeto_processo: 'Objeto',
     elemento_despesa_codigo: 'Cód. Elemento',
     elemento_despesa_descricao: 'Elemento Despesa',
@@ -635,7 +641,8 @@ const nomesColunas = {
 const ordemColunasConsulta = [
     'ano_empenho','unidade_orcamentaria_codigo','unidade_orcamentaria_nome','numero_empenho',
     'data_registro_doc_empenho','razao_social_credor','cnpj_cpf_credor_formatado',
-    'licitacao_descricao_da_modalidade','numero_processo_compra_siad','objeto_processo',
+    'licitacao_descricao_da_modalidade','numero_processo_compra_siad','_lic_link_processo',
+    '_lic_numero_contrato','_lic_link_contrato','objeto_processo',
     'elemento_despesa_codigo','elemento_despesa_descricao',
     'valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro',
     'valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'
@@ -679,23 +686,39 @@ function formatarInteiro(valor) {
 function parseCSV(texto) {
     const linhas = texto.trim().split('\n');
     if (linhas.length < 2) return [];
-    const cabecalhos = linhas[0].split(';').map(h => h.trim().replace(/^\uFEFF/, '').replace(/"/g, ''));
+
+    // Auto-detectar separador: contar ; e , fora de aspas na primeira linha
+    const primeiraLinha = linhas[0].replace(/^\uFEFF/, '');
+    let contSemicolon = 0, contComma = 0, emAspasD = false;
+    for (const ch of primeiraLinha) {
+        if (ch === '"') { emAspasD = !emAspasD; continue; }
+        if (emAspasD) continue;
+        if (ch === ';') contSemicolon++;
+        else if (ch === ',') contComma++;
+    }
+    const sep = contSemicolon >= contComma ? ';' : ',';
+
+    function splitLinha(linha) {
+        const vals = [];
+        let campo = '', aspas = false;
+        for (let j = 0; j < linha.length; j++) {
+            const c = linha[j];
+            if (c === '"') { aspas = !aspas; }
+            else if (c === sep && !aspas) { vals.push(campo); campo = ''; }
+            else { campo += c; }
+        }
+        vals.push(campo);
+        return vals;
+    }
+
+    const cabecalhos = splitLinha(primeiraLinha).map(h => h.trim().replace(/"/g, ''));
     const dados = [];
     for (let i = 1; i < linhas.length; i++) {
         if (!linhas[i].trim()) continue;
-        const linha = linhas[i];
-        const valores = [];
-        let campoAtual = '', dentroAspas = false;
-        for (let j = 0; j < linha.length; j++) {
-            const char = linha[j];
-            if (char === '"') dentroAspas = !dentroAspas;
-            else if (char === ';' && !dentroAspas) { valores.push(campoAtual); campoAtual = ''; }
-            else campoAtual += char;
-        }
-        valores.push(campoAtual);
+        const valores = splitLinha(linhas[i]);
         const obj = {};
         cabecalhos.forEach((cab, idx) => {
-            let v = valores[idx] !== undefined ? valores[idx].trim() : '';
+            let v = valores[idx] !== undefined ? valores[idx].trim().replace(/^"|"$/g, '') : '';
             if (v === 'NULL' || v === '') v = null;
             obj[cab] = v;
         });
@@ -705,8 +728,38 @@ function parseCSV(texto) {
 }
 
 function parsearValorMonetario(v) {
-    if (!v) return 0;
-    const str = String(v).replace(/\./g, '').replace(',', '.');
+    if (!v && v !== 0) return 0;
+    let str = String(v).trim();
+    if (!str || str === 'NULL' || str === '' || str === '-') return 0;
+    // Detect format: if has comma and dot, determine which is decimal separator
+    // BR format: 1.234,56 → dot=thousands, comma=decimal
+    // US format: 1,234.56 → comma=thousands, dot=decimal
+    const hasDot = str.includes('.');
+    const hasComma = str.includes(',');
+    if (hasDot && hasComma) {
+        // Last separator is decimal
+        const lastDot = str.lastIndexOf('.');
+        const lastComma = str.lastIndexOf(',');
+        if (lastComma > lastDot) {
+            // BR format: remove dots, replace comma with dot
+            str = str.replace(/\./g, '').replace(',', '.');
+        } else {
+            // US format: remove commas
+            str = str.replace(/,/g, '');
+        }
+    } else if (hasComma) {
+        // Only comma — could be decimal (BR: 1234,56) or thousands (1,234)
+        // If digits after comma are exactly 3 and no other comma, treat as thousands
+        const parts = str.split(',');
+        if (parts.length === 2 && parts[1].length === 3 && !parts[0].includes('.')) {
+            // ambiguous — treat as decimal to be safe
+            str = str.replace(',', '.');
+        } else {
+            str = str.replace(',', '.');
+        }
+    }
+    // Remove any remaining non-numeric chars except dot and minus
+    str = str.replace(/[^\d.\-]/g, '');
     const num = parseFloat(str);
     return isNaN(num) ? 0 : num;
 }
@@ -745,8 +798,9 @@ async function carregarDados() {
     try {
         dadosEmpenho = [];
         dadosLicitacoes = [];
+        const orgaoMap = new Map(); // codigo → nome
 
-        // Carregar empenhos por ano
+        // Carregar empenhos, licitações e orgãos por ano
         for (const ano of ANOS_DISPONIVEIS) {
             mostrarLoading(true, `Carregando empenhos ${ano}...`);
             try {
@@ -768,25 +822,63 @@ async function carregarDados() {
                     dadosLicitacoes = [...dadosLicitacoes, ...dados2];
                 }
             } catch(e) { console.error(`Erro licitações ${ano}:`, e); }
+
+            // Carregar orgão para enriquecer nomes
+            mostrarLoading(true, `Carregando órgãos ${ano}...`);
+            try {
+                const resp3 = await fetch(`${URL_EMPENHO_BASE.replace('empenho','orgao')}${ano}.csv`);
+                if (resp3.ok) {
+                    const texto3 = await resp3.text();
+                    const dados3 = parseCSV(texto3);
+                    dados3.forEach(o => {
+                        const cod = o['unidade_orcamentaria_codigo'] || o['codigo'] || '';
+                        const nome = o['unidade_orcamentaria_nome'] || o['nome'] || '';
+                        if (cod && nome) orgaoMap.set(String(cod).trim(), nome);
+                    });
+                }
+            } catch(e) { console.error(`Erro orgão ${ano}:`, e); }
         }
 
-        // Mapa de licitações por numero_processo_formatado
+        // Debug: log colunas disponíveis nas licitações
+        if (dadosLicitacoes.length > 0) {
+            console.log('[DEBUG] Colunas licitações:', Object.keys(dadosLicitacoes[0]));
+            console.log('[DEBUG] Amostra licitação:', dadosLicitacoes[0]);
+            console.log('[DEBUG] edital_retificacao_arquivos amostra:', dadosLicitacoes[0]['edital_retificacao_arquivos']);
+            console.log('[DEBUG] numero_processo_formatado amostra:', dadosLicitacoes[0]['numero_processo_formatado']);
+        }
+        if (dadosEmpenho.length > 0) {
+            console.log('[DEBUG] Colunas empenho:', Object.keys(dadosEmpenho[0]));
+            console.log('[DEBUG] numero_processo_compra_siad amostra:', dadosEmpenho[0]['numero_processo_compra_siad']);
+            console.log('[DEBUG] valor_despesa_empenhada amostra (raw):', dadosEmpenho[0]['valor_despesa_empenhada']);
+        }
+
+
+        // Mapa de licitações por numero_processo_formatado (chave exata E normalizada)
         const licitacoesMap = new Map();
+        const licitacoesMapNorm = new Map(); // chave normalizada (só dígitos e letras, uppercase)
+        function normalizarChave(s) { return String(s||'').toUpperCase().replace(/[\s\-\.\/]/g,''); }
         dadosLicitacoes.forEach(l => {
             if (l && l['numero_processo_formatado']) {
-                licitacoesMap.set(String(l['numero_processo_formatado']).trim(), l);
+                const chave = String(l['numero_processo_formatado']).trim();
+                licitacoesMap.set(chave, l);
+                licitacoesMapNorm.set(normalizarChave(chave), l);
             }
         });
+        console.log('[DEBUG] licitacoesMap size:', licitacoesMap.size);
 
-        // Consolidar: enriquecer empenhos com objeto_processo das licitações
+        // Consolidar: enriquecer empenhos com dados das licitações
         dadosConsolidados = dadosEmpenho.map(emp => {
             const proc = emp['numero_processo_compra_siad'] ? String(emp['numero_processo_compra_siad']).trim() : null;
-            const lic = proc ? licitacoesMap.get(proc) : null;
+            // Busca exata primeiro, depois normalizada
+            const lic = proc ? (licitacoesMap.get(proc) || licitacoesMapNorm.get(normalizarChave(proc)) || null) : null;
+            // Enriquecer nome da unidade via orgaoMap se ausente
+            const codUnid = emp['unidade_orcamentaria_codigo'] ? String(emp['unidade_orcamentaria_codigo']).trim() : '';
+            const nomeUnid = emp['unidade_orcamentaria_nome'] || orgaoMap.get(codUnid) || '';
 
             return {
                 ano_empenho: emp['ano_empenho'] ? formatarInteiro(emp['ano_empenho']) : '2026',
-                unidade_orcamentaria_codigo: emp['unidade_orcamentaria_codigo'] ? formatarInteiro(emp['unidade_orcamentaria_codigo']) : '',
-                unidade_orcamentaria_nome: emp['unidade_orcamentaria_nome'] || '',
+                unidade_orcamentaria_codigo: codUnid ? formatarInteiro(codUnid) : '',
+                unidade_orcamentaria_nome: nomeUnid,
                 numero_empenho: emp['numero_empenho'] ? formatarInteiro(emp['numero_empenho']) : '',
                 data_registro_doc_empenho: emp['data_registro_doc_empenho'] || '',
                 razao_social_credor: emp['razao_social_credor'] || 'Não informado',
@@ -801,7 +893,32 @@ async function carregarDados() {
                 valor_pago_financeiro: parsearValorMonetario(emp['valor_pago_financeiro']),
                 valor_pago_processado: parsearValorMonetario(emp['valor_pago_processado']),
                 valor_pago_nao_processado: parsearValorMonetario(emp['valor_pago_nao_processado']),
-                valor_pago_rp: parsearValorMonetario(emp['valor_pago_rp'])
+                valor_pago_rp: parsearValorMonetario(emp['valor_pago_rp']),
+                // Campos extras das licitações
+                _lic_ano_criacao_pedido: lic ? (lic['ano_criacao_pedido'] || '') : '',
+                _lic_procedimento_grupo: lic ? (lic['procedimento_contratacao_grupo'] || '') : '',
+                _lic_procedimento_det1: lic ? (lic['procedimento_contratacao_detalhamento_1'] || '') : '',
+                _lic_procedimento_esp: lic ? (lic['procedimento_contratacao_especializacao'] || '') : '',
+                _lic_codigo_orgao: lic ? (lic['codigo_orgao_entidade_compra'] || '') : '',
+                _lic_nome_orgao: lic ? (lic['nome_orgao_entidade_compra'] || '') : '',
+                _lic_data_criacao_pedido: lic ? (lic['data_criacao_pedido'] || '') : '',
+                _lic_data_licitacao: lic ? (lic['data_licitacao'] || '') : '',
+                _lic_numero_contrato: lic ? (lic['numero_contrato'] || '') : '',
+                _lic_indicador_termo_contrato: lic ? (lic['indicador_termo_de_contrato'] || '') : '',
+                _lic_situacao_processo: lic ? (lic['situacao_processo'] || '') : '',
+                _lic_situacao_compra_item: lic ? (lic['situacao_compra_item_processo'] || '') : '',
+                _lic_criterio_julgamento: lic ? (lic['criterio_julgamento'] || '') : '',
+                _lic_nome_fornecedor: lic ? (lic['nome_empresarial_nome_fornecedor'] || '') : '',
+                _lic_cnpj_fornecedor: lic ? (lic['cnpj_cpf_fornecedor_formatado'] || '') : '',
+                _lic_numero_parecer: lic ? (lic['numero_parecer_juridico'] || '') : '',
+                _lic_data_parecer: lic ? (lic['data_parecer_juridico'] || '') : '',
+                _lic_edital_url: lic ? (lic['edital_retificacao_arquivos'] || '') : '',
+                _lic_contrato_url: lic ? (lic['contrato_termoaditivo_arquivos'] || '') : '',
+                _lic_link_processo: lic ? (lic['edital_retificacao_arquivos'] || '') : '',
+                _lic_link_contrato: lic ? (lic['contrato_termoaditivo_arquivos'] || '') : '',
+                _lic_valor_referencia: parsearValorMonetario(lic ? lic['valor_total_referencia_item_processo'] : null),
+                _lic_valor_homologado: parsearValorMonetario(lic ? lic['valor_total_homologado'] : null),
+                _lic_valor_atualizado: parsearValorMonetario(lic ? lic['valor_total_atualizado'] : null),
             };
         });
 
@@ -822,6 +939,18 @@ async function carregarDados() {
         mostrarLoading(false);
     }
 }
+
+function gerarCabecalhosConsulta(dados) {
+    if (!dados || dados.length === 0) return '';
+
+    const colunas = Object.keys(dados[0]);
+
+    return `
+        <tr>
+            ${colunas.map(col => `<th>${col}</th>`).join('')}
+        </tr>
+    `;
+} 
 
 async function carregarDataAtualizacao() {
     const el = document.getElementById('data-atualizacao-header');
@@ -854,7 +983,7 @@ function renderizarVisaoGeral() {
             <div class="filter-group">
                 <label class="filter-label">Ano</label>
                 <select class="form-select modern-select" id="vgFiltroAno">
-                    ${anosDisponiveis.map(a=>`<option value="${a}" ${a=='2026'?'selected':''}>${a}</option>`).join('')}
+                    ${anosDisponiveis.map((a,i)=>`<option value="${a}" ${i===0?'selected':''}>${a}</option>`).join('')}
                 </select>
             </div>
             <div class="filter-group" style="flex:3;min-width:200px;">
@@ -874,7 +1003,7 @@ function renderizarVisaoGeral() {
     <div class="row g-3 mb-4">
         <div class="col-12">
             <div class="chart-container">
-                <div class="chart-header"><h4 class="chart-title">Despesa por Unidade Orçamentária — Top 10 (Valor Empenhado)</h4></div>
+                <div class="chart-header"><h4 class="chart-title">Despesa por Unidade Orçamentária — Top 10 (Valor Pago)</h4></div>
                 <div class="chart-wrapper" style="height:300px;"><canvas id="chartUnidades"></canvas></div>
             </div>
         </div>
@@ -898,8 +1027,6 @@ function renderizarVisaoGeral() {
                     <tr>
                         <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_codigo')">Código <i class="material-icons">unfold_more</i></th>
                         <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_nome')">Unidade Orçamentária <i class="material-icons">unfold_more</i></th>
-                        <th class="sortable-header text-right" onclick="toggleSortVG('valor_despesa_empenhada')">Valor Empenhado <i class="material-icons">unfold_more</i></th>
-                        <th class="sortable-header text-right" onclick="toggleSortVG('valor_despesa_liquidada')">Valor Liquidado <i class="material-icons">unfold_more</i></th>
                         <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_financeiro')">Valor Pago <i class="material-icons">unfold_more</i></th>
                         <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_processado')">Pago Processado <i class="material-icons">unfold_more</i></th>
                         <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_nao_processado')">Pago Não Proc. <i class="material-icons">unfold_more</i></th>
@@ -963,28 +1090,22 @@ function aplicarFiltrosVGInterno() {
 
     // Métricas
     document.getElementById('vgMetricas').innerHTML = `
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-4">
             <div class="metric-card">
                 <div class="metric-header">Total de Empenhos</div>
                 <div class="metric-body"><div class="metric-value">${totalEmpenhos.toLocaleString('pt-BR')}</div><div class="metric-sublabel">registros de empenho</div></div>
             </div>
         </div>
-        <div class="col-6 col-md-3">
-            <div class="metric-card">
-                <div class="metric-header">Valor Empenhado</div>
-                <div class="metric-body"><div class="metric-value" style="font-size:14px">${formatarMoeda(totalEmpenhado)}</div><div class="metric-sublabel">total empenhado</div></div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
-            <div class="metric-card">
-                <div class="metric-header">Valor Liquidado</div>
-                <div class="metric-body"><div class="metric-value" style="font-size:14px">${formatarMoeda(totalLiquidado)}</div><div class="metric-sublabel">total liquidado</div></div>
-            </div>
-        </div>
-        <div class="col-6 col-md-3">
+        <div class="col-6 col-md-4">
             <div class="metric-card">
                 <div class="metric-header">Valor Pago</div>
                 <div class="metric-body"><div class="metric-value" style="font-size:14px">${formatarMoeda(totalPago)}</div><div class="metric-sublabel">total pago financeiro</div></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4">
+            <div class="metric-card">
+                <div class="metric-header">Total de Credores</div>
+                <div class="metric-body"><div class="metric-value">${totalCredores.toLocaleString('pt-BR')}</div><div class="metric-sublabel">credores distintos</div></div>
             </div>
         </div>`;
 
@@ -997,7 +1118,7 @@ function aplicarFiltrosVGInterno() {
     if (badge) badge.textContent = `${window._vgUnidadesOrdenadas.length} unidades`;
 
     // Gráfico top 10
-    const top10 = [...unidades].sort((a,b) => b.valor_despesa_empenhada - a.valor_despesa_empenhada).slice(0,10);
+    const top10 = [...unidades].sort((a,b) => b.valor_pago_financeiro - a.valor_pago_financeiro).slice(0,10);
     if (chartBar) chartBar.destroy();
     const ctx = document.getElementById('chartUnidades')?.getContext('2d');
     if (ctx && top10.length > 0) {
@@ -1006,8 +1127,6 @@ function aplicarFiltrosVGInterno() {
             data: {
                 labels: top10.map(u => u.unidade_orcamentaria_nome.substring(0,35)+'...'),
                 datasets: [
-                    { label: 'Empenhado', data: top10.map(u => u.valor_despesa_empenhada), backgroundColor: '#1a3a5c' },
-                    { label: 'Liquidado', data: top10.map(u => u.valor_despesa_liquidada), backgroundColor: '#ffc107' },
                     { label: 'Pago', data: top10.map(u => u.valor_pago_financeiro), backgroundColor: '#28a745' }
                 ]
             },
@@ -1042,8 +1161,6 @@ function atualizarTabelaVG() {
         <tr>
             <td>${u.unidade_orcamentaria_codigo || '-'}</td>
             <td><a href="#" class="orgao-link" onclick="irParaConsultaEmpenho('${(u.unidade_orcamentaria_nome||'').replace(/'/g,"\\'")}','${ano}');return false;">${u.unidade_orcamentaria_nome || '-'}</a></td>
-            <td class="text-right">${formatarMoeda(u.valor_despesa_empenhada)}</td>
-            <td class="text-right">${formatarMoeda(u.valor_despesa_liquidada)}</td>
             <td class="text-right">${formatarMoeda(u.valor_pago_financeiro)}</td>
             <td class="text-right">${formatarMoeda(u.valor_pago_processado)}</td>
             <td class="text-right">${formatarMoeda(u.valor_pago_nao_processado)}</td>
@@ -1061,8 +1178,6 @@ function atualizarTabelaVG() {
     document.getElementById('vgTableFoot').innerHTML = `
         <tr>
             <td colspan="2"><strong>TOTAL GERAL</strong></td>
-            <td class="text-right"><strong>${formatarMoeda(totais.emp)}</strong></td>
-            <td class="text-right"><strong>${formatarMoeda(totais.liq)}</strong></td>
             <td class="text-right"><strong>${formatarMoeda(totais.pag)}</strong></td>
             <td class="text-right"><strong>${formatarMoeda(totais.proc)}</strong></td>
             <td class="text-right"><strong>${formatarMoeda(totais.naoproc)}</strong></td>
@@ -1096,8 +1211,10 @@ function toggleSortVG(col) {
 window.aplicarFiltrosVG = function() { aplicarFiltrosVGInterno(); };
 
 window.limparFiltrosVG = function() {
+    const anoOpts = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
+    const anoAtual = anoOpts[0] || '2026';
     const ano = document.getElementById('vgFiltroAno');
-    if (ano) ano.value = '2026';
+    if (ano) ano.value = anoAtual;
     const unid = document.getElementById('vgFiltroUnidade');
     if (unid) unid.value = '';
     aplicarFiltrosVGInterno();
@@ -1120,7 +1237,7 @@ window.irParaConsultaEmpenho = function(unidade, ano) {
     setTimeout(() => {
         const elAno = document.getElementById('consFiltroAno');
         const elUnid = document.getElementById('consFiltroUnidade');
-        if (elAno) elAno.value = ano || '2026';
+        if (elAno) elAno.value = ano || document.getElementById('vgFiltroAno')?.value || '2026';
         if (elUnid) elUnid.value = unidade;
         aplicarFiltrosConsultaInterno();
     }, 300);
@@ -1169,6 +1286,34 @@ function renderizarConsultaEmpenho() {
     const credores = [...new Set(dadosConsolidados.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort();
     const modalidades = [...new Set(dadosConsolidados.map(d=>d.licitacao_descricao_da_modalidade))].filter(Boolean).sort();
     const elementos = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
+	
+// 🔽 CRIA ESTRUTURA DA TABELA
+container.innerHTML = `
+    <table id="tabelaConsultaEmpenho" border="1">
+        <thead></thead>
+        <tbody></tbody>
+    </table>
+`;
+
+const tabela = document.getElementById('tabelaConsultaEmpenho');
+const thead = tabela.querySelector('thead');
+const tbody = tabela.querySelector('tbody');
+
+// 🔽 GARANTE QUE TEM DADOS
+if (!dadosConsolidados || dadosConsolidados.length === 0) {
+    console.warn('Sem dados para renderizar');
+    return;
+}
+
+// 🔽 CABEÇALHO
+thead.innerHTML = gerarCabecalhosConsulta(dadosConsolidados);
+
+// 🔽 CORPO
+tbody.innerHTML = dadosConsolidados.map(linha => `
+    <tr>
+        ${Object.values(linha).map(valor => `<td>${valor ?? ''}</td>`).join('')}
+    </tr>
+`).join('');
 
     container.innerHTML = `
     <div class="filter-container">
@@ -1176,16 +1321,16 @@ function renderizarConsultaEmpenho() {
             <div class="filter-group">
                 <label class="filter-label">Ano</label>
                 <select class="form-select modern-select" id="consFiltroAno">
-                    ${anos.map(a=>`<option value="${a}" ${a=='2026'?'selected':''}>${a}</option>`).join('')}
+                    ${anos.map((a,i)=>`<option value="${a}" ${i===0?'selected':''}>${a}</option>`).join('')}
                 </select>
             </div>
             <div class="filter-group">
-                <label class="filter-label">Cód. Unid. Orçamentária</label>
+                <label class="filter-label">Código UO</label>
                 <input type="text" class="form-control" id="consFiltroCodUnidade" list="consListCodUnidade" placeholder="Digite...">
                 <datalist id="consListCodUnidade">${codUnidades.map(c=>`<option value="${c}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:2;min-width:200px;">
-                <label class="filter-label">Unidade Orçamentária</label>
+                <label class="filter-label">Nome UO</label>
                 <input type="text" class="form-control" id="consFiltroUnidade" list="consListUnidade" placeholder="Digite ou selecione...">
                 <datalist id="consListUnidade">${unidades.map(u=>`<option value="${u}">`).join('')}</datalist>
             </div>
@@ -1203,12 +1348,12 @@ function renderizarConsultaEmpenho() {
                 <input type="text" class="form-control" id="consFiltroCnpj" placeholder="CNPJ/CPF...">
             </div>
             <div class="filter-group">
-                <label class="filter-label">Modalidade</label>
+                <label class="filter-label">Mod. Licitação</label>
                 <input type="text" class="form-control" id="consFiltroModalidade" list="consListModalidade" placeholder="Digite...">
                 <datalist id="consListModalidade">${modalidades.map(m=>`<option value="${m}">`).join('')}</datalist>
             </div>
             <div class="filter-group">
-                <label class="filter-label">Nº Processo SIAD</label>
+                <label class="filter-label">Nº Processo Compra</label>
                 <input type="text" class="form-control" id="consFiltroProcesso" placeholder="Processo...">
             </div>
             <div class="filter-group">
@@ -1258,22 +1403,37 @@ function renderizarConsultaEmpenho() {
         <button class="btn-topo" onclick="voltarAoTopo()"><i class="material-icons">arrow_upward</i> Voltar ao topo</button>
     </div>`;
 
-    dadosFiltradosConsulta = dadosConsolidados.filter(d => d.ano_empenho == '2026');
+    const anoMaisRecenteConsulta = anos[0] || '2026';
+    dadosFiltradosConsulta = dadosConsolidados.filter(d => d.ano_empenho == anoMaisRecenteConsulta);
     dadosFiltradosConsulta = ordenarDadosGenerico(dadosFiltradosConsulta, sortConsulta.col, sortConsulta.dir);
     paginacaoConsulta.atual = 1;
     paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
     atualizarTabelaConsulta();
-}
-
-function gerarCabecalhosConsulta() {
+} 
+function montarCabecalhoConsulta() {
     let html = '';
+
     for (const col of ordemColunasConsulta) {
         const fixo = colunasFixasConsulta.includes(col);
         if (!fixo && !colunasVisiveisConsulta[col]) continue;
-        const camposMonetarios = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+
+        const camposMonetarios = [
+            'valor_despesa_empenhada',
+            'valor_despesa_liquidada',
+            'valor_pago_financeiro',
+            'valor_pago_processado',
+            'valor_pago_nao_processado',
+            'valor_pago_rp'
+        ];
+
         const alinhDir = camposMonetarios.includes(col) ? ' text-right' : '';
-        html += `<th class="sortable-header${alinhDir}" onclick="toggleSortConsulta('${col}')">${nomesColunas[col]||col} <i class="material-icons">unfold_more</i></th>`;
+
+        html += `<th class="sortable-header${alinhDir}" onclick="toggleSortConsulta('${col}')">
+                    ${nomesColunas[col] || col}
+                    <i class="material-icons">unfold_more</i>
+                 </th>`;
     }
+
     html += '<th class="text-center">Ações</th>';
     return html;
 }
@@ -1292,25 +1452,46 @@ function atualizarTabelaConsulta() {
             let valor = item[col];
             if (col === 'numero_empenho') {
                 row += `<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${(String(item.numero_empenho)||'').replace(/'/g,"\\'")}','${(String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
+            } else if (col === 'numero_processo_compra_siad') {
+                const edital = item._lic_edital_url || '';
+                const proc = valor || '';
+                if (proc && edital) {
+                    row += `<td><a href="${edital}" target="_blank" class="empenho-link" title="Acessar Edital">${proc} <i class="material-icons" style="font-size:11px;vertical-align:middle">open_in_new</i></a></td>`;
+                } else {
+                    row += `<td>${proc||'-'}</td>`;
+                }
+            } else if (col === '_lic_link_processo') {
+                const url = item._lic_link_processo || item._lic_edital_url || '';
+                if (url) {
+                    row += `<td class="text-center"><a href="${url}" target="_blank" class="btn-export" style="height:26px;padding:0 8px;font-size:11px;" title="Acessar Processo de Compra"><i class="material-icons" style="font-size:13px">open_in_new</i> Processo</a></td>`;
+                } else { row += `<td class="text-center">-</td>`; }
+            } else if (col === '_lic_link_contrato') {
+                const url = item._lic_link_contrato || item._lic_contrato_url || '';
+                if (url) {
+                    row += `<td class="text-center"><a href="${url}" target="_blank" class="btn-export" style="height:26px;padding:0 8px;font-size:11px;" title="Acessar Contrato"><i class="material-icons" style="font-size:13px">article</i> Contrato</a></td>`;
+                } else { row += `<td class="text-center">-</td>`; }
+            } else if (col === '_lic_numero_contrato') {
+                const contrato = valor || '';
+                const contratoUrl = item._lic_contrato_url || '';
+                if (contrato && contratoUrl) {
+                    row += `<td><a href="${contratoUrl}" target="_blank" class="empenho-link" title="Acessar Contrato">${contrato} <i class="material-icons" style="font-size:11px;vertical-align:middle">open_in_new</i></a></td>`;
+                } else {
+                    row += `<td>${contrato||'-'}</td>`;
+                }
             } else if (col === 'objeto_processo') {
-                const txt = valor || '';
-                row += `<td title="${txt.replace(/"/g,'&quot;')}">${txt.substring(0,45)}${txt.length>45?'...':''}</td>`;
-            } else if (col === 'data_registro_doc_empenho') {
-                row += `<td>${formatarData(valor)}</td>`;
+                const obj = valor || '';
+                row += `<td title="${obj}">${obj.length > 60 ? obj.substring(0,60)+'...' : (obj||'-')}</td>`;
             } else if (camposMonetarios.includes(col)) {
                 row += `<td class="text-right">${formatarMoeda(valor)}</td>`;
             } else {
                 row += `<td>${valor||'-'}</td>`;
             }
         }
-        const numEmp = (String(item.numero_empenho)||'').replace(/'/g,"\\'");
-        const codUnid = (String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'");
-        row += `<td class="text-center"><button class="btn-action" onclick="verDetalhesEmpenho('${numEmp}','${codUnid}')"><i class="material-icons" style="font-size:15px">visibility</i></button></td>`;
+        row += `<td class="text-center"><button class="btn-action" onclick="verDetalhesEmpenho('${(String(item.numero_empenho)||'').replace(/'/g,"\\'")}','${(String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td>`;
         row += '</tr>';
         return row;
     }).join('');
 
-    // Totais rodapé
     const totais = dadosFiltradosConsulta.reduce((acc, d) => {
         acc.emp += d.valor_despesa_empenhada; acc.liq += d.valor_despesa_liquidada;
         acc.pag += d.valor_pago_financeiro; acc.proc += d.valor_pago_processado;
@@ -1318,16 +1499,14 @@ function atualizarTabelaConsulta() {
         return acc;
     }, { emp:0,liq:0,pag:0,proc:0,naoproc:0,rp:0 });
 
-    const numCols = ordemColunasConsulta.filter(c => colunasFixasConsulta.includes(c) || colunasVisiveisConsulta[c]).length;
     let footHtml = '<tr>';
     let primeiroMonetario = true;
     let colsAntes = 0;
     for (const col of ordemColunasConsulta) {
         if (!colunasFixasConsulta.includes(col) && !colunasVisiveisConsulta[col]) continue;
-        const camposMonetarios = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
-        if (!camposMonetarios.includes(col)) { colsAntes++; footHtml += `<td></td>`; continue; }
+        const camposMonetarios2 = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+        if (!camposMonetarios2.includes(col)) { colsAntes++; footHtml += `<td></td>`; continue; }
         if (primeiroMonetario) {
-            // Reescreve primeira célula monetária com colspan
             footHtml = '<tr><td colspan="' + colsAntes + '"><strong>TOTAL</strong></td>';
             primeiroMonetario = false;
         }
@@ -1385,11 +1564,13 @@ window.aplicarFiltrosConsultaInterno = function() {
 };
 
 window.limparFiltrosConsulta = function() {
+    const anoOpts = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
+    const anoMaisRecente = anoOpts[0] || '2026';
     ['consFiltroAno','consFiltroCodUnidade','consFiltroUnidade','consFiltroEmpenho','consFiltroCredor','consFiltroCnpj','consFiltroModalidade','consFiltroProcesso','consFiltroElemento','consFiltroDescElemento','consFiltroObjeto'].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.value = id === 'consFiltroAno' ? '2026' : '';
+        if (el) el.value = id === 'consFiltroAno' ? anoMaisRecente : '';
     });
-    dadosFiltradosConsulta = dadosConsolidados.filter(d => d.ano_empenho == '2026');
+    dadosFiltradosConsulta = dadosConsolidados.filter(d => d.ano_empenho == anoMaisRecente);
     dadosFiltradosConsulta = ordenarDadosGenerico(dadosFiltradosConsulta, sortConsulta.col, sortConsulta.dir);
     paginacaoConsulta.atual = 1;
     paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
@@ -1418,24 +1599,47 @@ window.buscarConsulta = function(termo) {
             let valor = item[col];
             if (col === 'numero_empenho') {
                 row += `<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${(String(item.numero_empenho)||'').replace(/'/g,"\\'")}','${(String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
+            } else if (col === 'numero_processo_compra_siad') {
+                const edital = item._lic_edital_url || '';
+                const proc = valor || '';
+                if (proc && edital) {
+                    row += `<td><a href="${edital}" target="_blank" class="empenho-link" title="Acessar Edital">${proc} <i class="material-icons" style="font-size:11px;vertical-align:middle">open_in_new</i></a></td>`;
+                } else {
+                    row += `<td>${proc||'-'}</td>`;
+                }
+            } else if (col === '_lic_link_processo') {
+                const url = item._lic_link_processo || item._lic_edital_url || '';
+                if (url) {
+                    row += `<td class="text-center"><a href="${url}" target="_blank" class="btn-export" style="height:26px;padding:0 8px;font-size:11px;"><i class="material-icons" style="font-size:13px">open_in_new</i> Processo</a></td>`;
+                } else { row += `<td class="text-center">-</td>`; }
+            } else if (col === '_lic_link_contrato') {
+                const url = item._lic_link_contrato || item._lic_contrato_url || '';
+                if (url) {
+                    row += `<td class="text-center"><a href="${url}" target="_blank" class="btn-export" style="height:26px;padding:0 8px;font-size:11px;"><i class="material-icons" style="font-size:13px">article</i> Contrato</a></td>`;
+                } else { row += `<td class="text-center">-</td>`; }
+            } else if (col === '_lic_numero_contrato') {
+                const contrato = valor || '';
+                const contratoUrl = item._lic_contrato_url || '';
+                if (contrato && contratoUrl) {
+                    row += `<td><a href="${contratoUrl}" target="_blank" class="empenho-link" title="Acessar Contrato">${contrato} <i class="material-icons" style="font-size:11px;vertical-align:middle">open_in_new</i></a></td>`;
+                } else {
+                    row += `<td>${contrato||'-'}</td>`;
+                }
             } else if (col === 'objeto_processo') {
-                const txt = valor || '';
-                row += `<td title="${txt.replace(/"/g,'&quot;')}">${txt.substring(0,45)}${txt.length>45?'...':''}</td>`;
-            } else if (col === 'data_registro_doc_empenho') {
-                row += `<td>${formatarData(valor)}</td>`;
+                const obj = valor || '';
+                row += `<td title="${obj}">${obj.length > 60 ? obj.substring(0,60)+'...' : (obj||'-')}</td>`;
             } else if (camposMonetarios.includes(col)) {
                 row += `<td class="text-right">${formatarMoeda(valor)}</td>`;
             } else {
                 row += `<td>${valor||'-'}</td>`;
             }
         }
-        const numEmp = (String(item.numero_empenho)||'').replace(/'/g,"\\'");
-        const codUnid = (String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'");
-        row += `<td class="text-center"><button class="btn-action" onclick="verDetalhesEmpenho('${numEmp}','${codUnid}')"><i class="material-icons" style="font-size:15px">visibility</i></button></td></tr>`;
+        row += `<td class="text-center"><button class="btn-action" onclick="verDetalhesEmpenho('${(String(item.numero_empenho)||'').replace(/'/g,"\\'")}','${(String(item.unidade_orcamentaria_codigo)||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td>`;
+        row += '</tr>';
         return row;
     }).join('');
-    const badge = document.getElementById('consultaBadge');
-    if (badge) badge.textContent = `${filtrado.length} empenhos`;
+    const badge2 = document.getElementById('consultaBadge');
+    if (badge2) badge2.textContent = `${filtrado.length} empenhos`;
 };
 
 function renderizarPaginacaoConsulta() {
@@ -1515,66 +1719,198 @@ window.verDetalhesEmpenho = function(numEmpenho, codUnidade) {
     );
     if (!item) return;
 
+    const temLic = !!(item.numero_processo_compra_siad);
+    const editalUrl = item._lic_edital_url || '';
+    const contratoUrl = item._lic_contrato_url || '';
+    const numContrato = item._lic_numero_contrato || '';
+
+    const processoHtml = item.numero_processo_compra_siad
+        ? (editalUrl
+            ? `<a href="${editalUrl}" target="_blank" style="color:#006a82;font-weight:600;text-decoration:none;" title="Acessar Edital">${item.numero_processo_compra_siad} <i class="material-icons" style="font-size:13px;vertical-align:middle">open_in_new</i></a>`
+            : item.numero_processo_compra_siad)
+        : '-';
+
+    const contratoHtml = numContrato
+        ? (contratoUrl
+            ? `<a href="${contratoUrl}" target="_blank" style="color:#006a82;font-weight:600;text-decoration:none;" title="Acessar Contrato">${numContrato} <i class="material-icons" style="font-size:13px;vertical-align:middle">open_in_new</i></a>`
+            : numContrato)
+        : '-';
+
+    const secLicitacao = temLic ? `
+        <div style="background:#1a3a5c;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;margin-top:12px;display:flex;align-items:center;gap:6px;">
+            <i class="material-icons" style="font-size:15px">gavel</i> Dados da Licitação / Processo de Compra
+        </div>
+        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 6px 6px;padding:14px;margin-bottom:8px;">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <div class="info-label">Nº Processo Compra (SIAD)</div>
+                    <div class="info-value">${processoHtml}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Nº Contrato</div>
+                    <div class="info-value">${contratoHtml}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Indicador Termo de Contrato</div>
+                    <div class="info-value">${item._lic_indicador_termo_contrato||'-'}</div>
+                </div>
+                <div class="col-12">
+                    <div class="info-label">Objeto do Processo</div>
+                    <div class="info-value" style="background:#fff;border:1px solid #e2e8f0;border-radius:4px;padding:6px 10px;font-size:12px;line-height:1.5;">${item.objeto_processo||'-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Modalidade / Grupo</div>
+                    <div class="info-value">${item._lic_procedimento_grupo||item.licitacao_descricao_da_modalidade||'-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Detalhamento</div>
+                    <div class="info-value">${item._lic_procedimento_det1||'-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Especialização</div>
+                    <div class="info-value">${item._lic_procedimento_esp||'-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Critério de Julgamento</div>
+                    <div class="info-value">${item._lic_criterio_julgamento||'-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Cód. Órgão (Compra)</div>
+                    <div class="info-value">${item._lic_codigo_orgao||'-'}</div>
+                </div>
+                <div class="col-md-5">
+                    <div class="info-label">Órgão / Entidade (Compra)</div>
+                    <div class="info-value">${item._lic_nome_orgao||'-'}</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="info-label">Ano Criação Pedido</div>
+                    <div class="info-value">${item._lic_ano_criacao_pedido||'-'}</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="info-label">Data Criação Pedido</div>
+                    <div class="info-value">${formatarData(item._lic_data_criacao_pedido)}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Data Licitação</div>
+                    <div class="info-value">${formatarData(item._lic_data_licitacao)}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Situação Processo</div>
+                    <div class="info-value">${item._lic_situacao_processo||'-'}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Situação Compra / Item</div>
+                    <div class="info-value">${item._lic_situacao_compra_item||'-'}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Fornecedor (Licitação)</div>
+                    <div class="info-value">${item._lic_nome_fornecedor||'-'}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">CNPJ/CPF Fornecedor</div>
+                    <div class="info-value">${item._lic_cnpj_fornecedor||'-'}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Nº Parecer Jurídico</div>
+                    <div class="info-value">${item._lic_numero_parecer||'-'}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Data Parecer Jurídico</div>
+                    <div class="info-value">${formatarData(item._lic_data_parecer)}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Vl. Referência</div>
+                    <div class="info-value">${item._lic_valor_referencia ? formatarMoeda(item._lic_valor_referencia) : '-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Vl. Homologado</div>
+                    <div class="info-value">${item._lic_valor_homologado ? formatarMoeda(item._lic_valor_homologado) : '-'}</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Vl. Atualizado</div>
+                    <div class="info-value">${item._lic_valor_atualizado ? formatarMoeda(item._lic_valor_atualizado) : '-'}</div>
+                </div>
+                ${editalUrl ? `<div class="col-md-6"><div class="info-label">Edital / Retificação</div><div class="info-value"><a href="${editalUrl}" target="_blank" class="btn-pesquisa" style="font-size:11px;height:28px;padding:0 10px;"><i class="material-icons" style="font-size:13px">description</i> Acessar Edital</a></div></div>` : ''}
+                ${contratoUrl && numContrato ? `<div class="col-md-6"><div class="info-label">Contrato / Termo Aditivo</div><div class="info-value"><a href="${contratoUrl}" target="_blank" class="btn-pesquisa" style="font-size:11px;height:28px;padding:0 10px;"><i class="material-icons" style="font-size:13px">article</i> Acessar Contrato</a></div></div>` : ''}
+            </div>
+        </div>` : '';
+
     document.getElementById('modalContent').innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                <div class="info-card primary">
+        <div style="background:#1a3a5c;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
+            <i class="material-icons" style="font-size:15px">receipt</i> Dados do Empenho
+        </div>
+        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 6px 6px;padding:14px;margin-bottom:8px;">
+            <div class="row g-2">
+                <div class="col-md-2">
                     <div class="info-label">Nº Empenho</div>
-                    <div class="info-value highlight">${item.numero_empenho||'-'}</div>
-                    <div class="info-label mt-2">Ano</div>
+                    <div class="info-value highlight" style="font-size:16px;font-weight:700;color:#1a3a5c;">${item.numero_empenho||'-'}</div>
+                </div>
+                <div class="col-md-2">
+                    <div class="info-label">Ano</div>
                     <div class="info-value">${item.ano_empenho||'-'}</div>
-                    <div class="info-label mt-2">Data Registro</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">Data Registro</div>
                     <div class="info-value">${formatarData(item.data_registro_doc_empenho)}</div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="info-card">
+                <div class="col-md-5">
                     <div class="info-label">Unidade Orçamentária</div>
-                    <div class="info-value">${item.unidade_orcamentaria_nome||'-'}</div>
-                    <div class="info-label mt-2">Código Unidade</div>
-                    <div class="info-value">${item.unidade_orcamentaria_codigo||'-'}</div>
+                    <div class="info-value">${item.unidade_orcamentaria_codigo ? '['+item.unidade_orcamentaria_codigo+'] ' : ''}${item.unidade_orcamentaria_nome||'-'}</div>
                 </div>
-            </div>
-        </div>
-        <div class="row mt-2">
-            <div class="col-md-6">
-                <div class="info-card">
+                <div class="col-md-5">
                     <div class="info-label">Credor (Beneficiário)</div>
                     <div class="info-value">${item.razao_social_credor||'-'}</div>
-                    <div class="info-label mt-2">CNPJ/CPF</div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-label">CNPJ/CPF Credor</div>
                     <div class="info-value">${item.cnpj_cpf_credor_formatado||'-'}</div>
                 </div>
-            </div>
-            <div class="col-md-6">
-                <div class="info-card">
+                <div class="col-md-4">
+                    <div class="info-label">Elemento de Despesa</div>
+                    <div class="info-value">${item.elemento_despesa_codigo||'-'}${item.elemento_despesa_descricao ? ' — '+item.elemento_despesa_descricao : ''}</div>
+                </div>
+                <div class="col-md-4">
                     <div class="info-label">Modalidade de Licitação</div>
                     <div class="info-value">${item.licitacao_descricao_da_modalidade||'-'}</div>
-                    <div class="info-label mt-2">Nº Processo Compra (SIAD)</div>
-                    <div class="info-value">${item.numero_processo_compra_siad||'-'}</div>
-                    <div class="info-label mt-2">Objeto do Processo</div>
-                    <div class="info-value">${item.objeto_processo||'-'}</div>
                 </div>
             </div>
         </div>
-        <div class="row mt-2">
-            <div class="col-md-6">
-                <div class="info-card">
-                    <div class="info-label">Elemento de Despesa</div>
-                    <div class="info-value">${item.elemento_despesa_codigo||'-'} — ${item.elemento_despesa_descricao||'-'}</div>
+
+        <div style="background:#20445d;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;margin-top:8px;display:flex;align-items:center;gap:6px;">
+            <i class="material-icons" style="font-size:15px">account_balance_wallet</i> Valores Financeiros (Empenho)
+        </div>
+        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 6px 6px;padding:14px;margin-bottom:8px;">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <div class="info-label">Valor Empenhado</div>
+                    <div class="info-value" style="font-size:15px;font-weight:700;color:#1a3a5c;">${formatarMoeda(item.valor_despesa_empenhada)}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Valor Liquidado</div>
+                    <div class="info-value" style="font-size:15px;font-weight:700;color:#ffc107;">${formatarMoeda(item.valor_despesa_liquidada)}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Valor Pago Financeiro</div>
+                    <div class="info-value" style="font-size:15px;font-weight:700;color:#28a745;">${formatarMoeda(item.valor_pago_financeiro)}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Pago Processado</div>
+                    <div class="info-value">${formatarMoeda(item.valor_pago_processado)}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Pago Não Processado</div>
+                    <div class="info-value">${formatarMoeda(item.valor_pago_nao_processado)}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-label">Pago RP (Total)</div>
+                    <div class="info-value">${formatarMoeda(item.valor_pago_rp)}</div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="info-card primary">
-                    <div class="info-label">Valores Financeiros</div>
-                    <div class="info-value"><strong>Empenhado:</strong> <span style="color:#1a3a5c;font-weight:700">${formatarMoeda(item.valor_despesa_empenhada)}</span></div>
-                    <div class="info-value"><strong>Liquidado:</strong> ${formatarMoeda(item.valor_despesa_liquidada)}</div>
-                    <div class="info-value"><strong>Pago Financeiro:</strong> ${formatarMoeda(item.valor_pago_financeiro)}</div>
-                    <div class="info-value"><strong>Pago Processado:</strong> ${formatarMoeda(item.valor_pago_processado)}</div>
-                    <div class="info-value"><strong>Pago Não Processado:</strong> ${formatarMoeda(item.valor_pago_nao_processado)}</div>
-                    <div class="info-value"><strong>Pago RP:</strong> ${formatarMoeda(item.valor_pago_rp)}</div>
-                </div>
-            </div>
-        </div>`;
+        </div>
+
+        ${secLicitacao}
+
+        ${!temLic ? `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:10px 14px;margin-top:8px;font-size:12px;color:#795548;"><i class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">info</i> Este empenho não possui processo de compra vinculado no dataset de licitações.</div>` : ''}`;
 
     new bootstrap.Modal(document.getElementById('detailModal')).show();
 };
@@ -1583,8 +1919,8 @@ window.verDetalhesEmpenho = function(numEmpenho, codUnidade) {
 // 8. EXPORTAÇÕES
 // ============================================================
 window.exportarTabelaVGCSV = function() {
-    const headers = ['Código','Unidade Orçamentária','Valor Empenhado','Valor Liquidado','Valor Pago','Pago Processado','Pago Não Processado','Pago RP'];
-    const rows = window._vgUnidadesOrdenadas.map(u => [u.unidade_orcamentaria_codigo,u.unidade_orcamentaria_nome,u.valor_despesa_empenhada,u.valor_despesa_liquidada,u.valor_pago_financeiro,u.valor_pago_processado,u.valor_pago_nao_processado,u.valor_pago_rp]);
+    const headers = ['Código','Unidade Orçamentária','Valor Pago','Pago Processado','Pago Não Processado','Pago RP'];
+    const rows = window._vgUnidadesOrdenadas.map(u => [u.unidade_orcamentaria_codigo,u.unidade_orcamentaria_nome,u.valor_pago_financeiro,u.valor_pago_processado,u.valor_pago_nao_processado,u.valor_pago_rp]);
     const csv = [headers.join(';'), ...rows.map(r=>r.map(c=>`"${c||''}"`).join(';'))].join('\n');
     const blob = new Blob(['\uFEFF'+csv], {type:'text/csv'});
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'visao_geral_empenhos.csv'; a.click();
@@ -1595,8 +1931,8 @@ window.exportarTabelaVGPDF = function() {
     const doc = new jsPDF({ orientation: 'landscape' });
     doc.setFontSize(12); doc.text('Visão Geral — Despesa por Empenho', 14, 12);
     doc.setFontSize(8); doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, 14, 18);
-    const body = (window._vgUnidadesOrdenadas||[]).slice(0,100).map(u=>[u.unidade_orcamentaria_codigo||'-',u.unidade_orcamentaria_nome||'-',formatarMoeda(u.valor_despesa_empenhada),formatarMoeda(u.valor_despesa_liquidada),formatarMoeda(u.valor_pago_financeiro),formatarMoeda(u.valor_pago_rp)]);
-    doc.autoTable({ head:[['Código','Unidade Orçamentária','Empenhado','Liquidado','Pago','Pago RP']], body, startY:22, headStyles:{fillColor:[32,68,93]}, styles:{fontSize:7} });
+    const body = (window._vgUnidadesOrdenadas||[]).slice(0,100).map(u=>[u.unidade_orcamentaria_codigo||'-',u.unidade_orcamentaria_nome||'-',formatarMoeda(u.valor_pago_financeiro),formatarMoeda(u.valor_pago_processado),formatarMoeda(u.valor_pago_rp)]);
+    doc.autoTable({ head:[['Código','Unidade Orçamentária','Pago','Pago Processado','Pago RP']], body, startY:22, headStyles:{fillColor:[32,68,93]}, styles:{fontSize:7} });
     doc.save('visao_geral_empenhos.pdf');
 };
 
@@ -1617,8 +1953,8 @@ window.exportarConsultaPDF = function() {
     const doc = new jsPDF({ orientation: 'landscape' });
     doc.setFontSize(12); doc.text('Consulta por Empenho — Transparência MG', 14, 12);
     doc.setFontSize(8); doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')} | ${dadosFiltradosConsulta.length} registros`, 14, 18);
-    const body = dadosFiltradosConsulta.slice(0,100).map(d=>[d.ano_empenho||'-',d.unidade_orcamentaria_nome||'-',d.numero_empenho||'-',formatarData(d.data_registro_doc_empenho),d.razao_social_credor||'-',d.elemento_despesa_codigo||'-',formatarMoeda(d.valor_despesa_empenhada),formatarMoeda(d.valor_despesa_liquidada),formatarMoeda(d.valor_pago_financeiro)]);
-    doc.autoTable({ head:[['Ano','Unidade','Empenho','Data','Credor','Elemento','Empenhado','Liquidado','Pago']], body, startY:22, headStyles:{fillColor:[32,68,93]}, styles:{fontSize:6} });
+    const body = dadosFiltradosConsulta.slice(0,100).map(d=>[d.ano_empenho||'-',d.unidade_orcamentaria_nome||'-',d.numero_empenho||'-',formatarData(d.data_registro_doc_empenho),d.razao_social_credor||'-',d.elemento_despesa_codigo||'-',formatarMoeda(d.valor_pago_financeiro)]);
+    doc.autoTable({ head:[['Ano','Unidade','Empenho','Data','Credor','Elemento','Pago']], body, startY:22, headStyles:{fillColor:[32,68,93]}, styles:{fontSize:6} });
     doc.save('consulta_empenhos.pdf');
 };
 
