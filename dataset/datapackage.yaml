@@ -1,0 +1,339 @@
+name: portal_despesa_empenho
+owner_org: ''
+profile: data-package
+resources:
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: empenho2022
+    path: data/empenho2022.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: ano_empenho
+          type: integer
+        - name: numero_empenho
+          type: integer
+        - name: data_registro_doc_empenho
+          type: date
+        - name: numero_processo_compra_siad
+          type: string
+        - name: licitacao_descricao_da_modalidade
+          type: string
+        - name: razao_social_credor
+          type: string
+        - name: cnpj_cpf_credor_formatado
+          type: string
+        - name: elemento_despesa_codigo
+          type: integer
+        - name: elemento_despesa_descricao
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: empenho2023
+    path: data/empenho2023.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: ano_empenho
+          type: integer
+        - name: numero_empenho
+          type: integer
+        - name: data_registro_doc_empenho
+          type: date
+        - name: numero_processo_compra_siad
+          type: string
+        - name: licitacao_descricao_da_modalidade
+          type: string
+        - name: razao_social_credor
+          type: string
+        - name: cnpj_cpf_credor_formatado
+          type: string
+        - name: elemento_despesa_codigo
+          type: integer
+        - name: elemento_despesa_descricao
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: empenho2024
+    path: data/empenho2024.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: ano_empenho
+          type: integer
+        - name: numero_empenho
+          type: integer
+        - name: data_registro_doc_empenho
+          type: date
+        - name: numero_processo_compra_siad
+          type: string
+        - name: licitacao_descricao_da_modalidade
+          type: string
+        - name: razao_social_credor
+          type: string
+        - name: cnpj_cpf_credor_formatado
+          type: string
+        - name: elemento_despesa_codigo
+          type: integer
+        - name: elemento_despesa_descricao
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: empenho2025
+    path: data/empenho2025.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+        - name: valor_pago_rp
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: empenho2026
+    path: data/empenho2026.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: ano_empenho
+          type: integer
+        - name: numero_empenho
+          type: integer
+        - name: data_registro_doc_empenho
+          type: date
+        - name: numero_processo_compra_siad
+          type: string
+        - name: licitacao_descricao_da_modalidade
+          type: string
+        - name: razao_social_credor
+          type: string
+        - name: cnpj_cpf_credor_formatado
+          type: string
+        - name: elemento_despesa_codigo
+          type: integer
+        - name: elemento_despesa_descricao
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: orgao2022
+    path: data/orgao2022.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+        - name: valor_pago_rp
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: orgao2023
+    path: data/orgao2023.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+        - name: valor_pago_rp
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: orgao2024
+    path: data/orgao2024.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+        - name: valor_pago_rp
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: orgao2025
+    path: data/orgao2025.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+        - name: valor_pago_rp
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+  - description: Insira a descrição/explicação detalhada deste recurso.
+    dialect:
+      delimiter: ;
+    encoding: utf-8-sig
+    format: csv
+    hashing: md5
+    name: orgao2026
+    path: data/orgao2026.csv
+    profile: tabular-data-resource
+    schema:
+      fields:
+        - name: ano_de_exercicio
+          type: integer
+        - name: unidade_orcamentaria_codigo
+          type: integer
+        - name: unidade_orcamentaria_nome
+          type: string
+        - name: valor_pago_financeiro
+          type: string
+        - name: valor_pago_processado
+          type: string
+        - name: valor_pago_nao_processado
+          type: string
+        - name: valor_pago_rp
+          type: string
+    scheme: file
+    title: Insira um título humanamente legível para este recurso.
+title: Portal_despesa_empenho
