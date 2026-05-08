@@ -221,13 +221,13 @@
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" id="downloads-tab" data-bs-toggle="tab" data-bs-target="#downloads">
-                        <i class="material-icons">download</i>Downloads
+                    <button class="nav-link" id="dicionario-tab" data-bs-toggle="tab" data-bs-target="#dicionario">
+                        <i class="material-icons">menu_book</i>Dicionário de Dados
                     </button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" id="dicionario-tab" data-bs-toggle="tab" data-bs-target="#dicionario">
-                        <i class="material-icons">menu_book</i>Dicionário de Dados
+                    <button class="nav-link" id="downloads-tab" data-bs-toggle="tab" data-bs-target="#downloads">
+                        <i class="material-icons">download</i>Downloads
                     </button>
                 </li>
             </ul>
@@ -278,13 +278,13 @@
                         </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" id="modal-empenhos-tab" data-bs-toggle="tab" data-bs-target="#modal-empenhos" type="button" style="font-size:12px;padding:8px 16px;">
-                            <i class="material-icons" style="font-size:14px;vertical-align:middle;">receipt_long</i> Empenhos
+                        <button class="nav-link" id="modal-licitacao-tab" data-bs-toggle="tab" data-bs-target="#modal-licitacao" type="button" style="font-size:12px;padding:8px 16px;">
+                            <i class="material-icons" style="font-size:14px;vertical-align:middle;">gavel</i> Processo de Compra
                         </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link" id="modal-licitacao-tab" data-bs-toggle="tab" data-bs-target="#modal-licitacao" type="button" id="btnModalLicitacao" style="font-size:12px;padding:8px 16px;">
-                            <i class="material-icons" style="font-size:14px;vertical-align:middle;">gavel</i> Processo de Compra
+                        <button class="nav-link" id="modal-empenhos-tab" data-bs-toggle="tab" data-bs-target="#modal-empenhos" type="button" style="font-size:12px;padding:8px 16px;">
+                            <i class="material-icons" style="font-size:14px;vertical-align:middle;">receipt_long</i> Empenhos e Pagamentos
                         </button>
                     </li>
                 </ul>
@@ -292,11 +292,11 @@
                     <div class="tab-pane fade show active" id="modal-dados">
                         <div id="modalContentDados"></div>
                     </div>
-                    <div class="tab-pane fade" id="modal-empenhos">
-                        <div id="modalContentEmpenhos"></div>
-                    </div>
                     <div class="tab-pane fade" id="modal-licitacao">
                         <div id="modalContentLicitacao"></div>
+                    </div>
+                    <div class="tab-pane fade" id="modal-empenhos">
+                        <div id="modalContentEmpenhos"></div>
                     </div>
                 </div>
             </div>
@@ -314,6 +314,45 @@
 <div class="loading-overlay" id="loadingOverlay">
     <div class="spinner-border" role="status" style="color:#20445d;width:2.5rem;height:2.5rem;"></div>
     <div class="loading-progress" id="loadingProgress">Carregando dados...</div>
+</div>
+
+<!-- MODAL DETALHES ITEM -->
+<div class="modal fade" id="itemDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content modal-creative">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="material-icons">inventory_2</i> Detalhamento do Item de Despesa</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding-top:0">
+                <ul class="nav nav-tabs mt-0 mb-3 pt-2" id="itemModalTabs" role="tablist" style="border-bottom:2px solid #dee2e6;">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="item-modal-dados-tab" data-bs-toggle="tab" data-bs-target="#item-modal-dados" type="button" style="font-size:12px;padding:8px 16px;">
+                            <i class="material-icons" style="font-size:14px;vertical-align:middle;">info</i> Dados Gerais
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="item-modal-compra-tab" data-bs-toggle="tab" data-bs-target="#item-modal-compra" type="button" style="font-size:12px;padding:8px 16px;">
+                            <i class="material-icons" style="font-size:14px;vertical-align:middle;">gavel</i> Processo de Compra
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="item-modal-empenhos-tab" data-bs-toggle="tab" data-bs-target="#item-modal-empenhos" type="button" style="font-size:12px;padding:8px 16px;">
+                            <i class="material-icons" style="font-size:14px;vertical-align:middle;">receipt_long</i> Empenhos e Pagamentos
+                        </button>
+                    </li>
+                </ul>
+                <div class="tab-content">
+                    <div class="tab-pane fade show active" id="item-modal-dados"><div id="itemModalContentDados"></div></div>
+                    <div class="tab-pane fade" id="item-modal-compra"><div id="itemModalContentCompra"></div></div>
+                    <div class="tab-pane fade" id="item-modal-empenhos"><div id="itemModalContentEmpenhos"></div></div>
+                </div>
+            </div>
+            <div class="modal-footer" style="gap:8px;">
+                <button type="button" class="btn-secondary-custom" data-bs-dismiss="modal"><i class="material-icons">close</i> Fechar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
@@ -362,14 +401,10 @@ let colunasVisiveisConsulta = {
     elemento_despesa_codigo: true,
     elemento_despesa_descricao: true,
     valor_despesa_empenhada: true,
-    valor_despesa_liquidada: false,
-    valor_pago_financeiro: true,
-    valor_pago_processado: false,
-    valor_pago_nao_processado: false,
-    valor_pago_rp: false
+    valor_despesa_liquidada: true
 };
 
-const colunasFixasConsulta = ['numero_empenho', 'unidade_orcamentaria_nome', 'valor_despesa_empenhada', 'valor_pago_financeiro'];
+const colunasFixasConsulta = ['numero_empenho', 'unidade_orcamentaria_nome', 'valor_despesa_empenhada', 'valor_despesa_liquidada'];
 
 const nomesColunas = {
     ano_empenho: 'Ano',
@@ -399,8 +434,7 @@ const ordemColunasConsulta = [
     'licitacao_descricao_da_modalidade','numero_processo_compra_siad',
     '_lic_numero_contrato','objeto_processo',
     'elemento_despesa_codigo','elemento_despesa_descricao',
-    'valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro',
-    'valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'
+    'valor_despesa_empenhada','valor_despesa_liquidada'
 ];
 
 // ============================================================
@@ -1295,35 +1329,56 @@ function renderizarConsultaItem() {
     const elementos = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
     const unidades = [...new Set(dadosConsolidados.map(d=>d.unidade_orcamentaria_nome))].filter(Boolean).sort();
 
+    const processos = [...new Set(dadosConsolidados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort();
+    const contratos = [...new Set(dadosConsolidados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort();
+    const descsElem = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort();
+
     container.innerHTML = `
     <div class="filter-container">
-        <div class="filters-row">
-            <div class="filter-group">
+        <div class="filters-row" style="flex-wrap:wrap;gap:10px;">
+            <div class="filter-group" style="min-width:100px;flex:0 0 auto;">
                 <label class="filter-label">Ano</label>
                 <select class="form-select modern-select" id="itemFiltroAno">
                     <option value="">Todos</option>
                     ${anos.map((a,i)=>`<option value="${a}" ${i===0?'selected':''}>${a}</option>`).join('')}
                 </select>
             </div>
-            <div class="filter-group">
+            <div class="filter-group" style="flex:1;min-width:130px;">
                 <label class="filter-label">Cód. Item Despesa</label>
                 <input type="text" class="form-control" id="itemFiltroCod" list="itemListCod" placeholder="Código...">
                 <datalist id="itemListCod">${itens.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:3;min-width:200px;">
-                <label class="filter-label">Descrição do Item</label>
+                <label class="filter-label">Item Despesa</label>
                 <input type="text" class="form-control" id="itemFiltroDesc" list="itemListDesc" placeholder="Palavra-chave...">
                 <datalist id="itemListDesc">${descsItem.slice(0,300).map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
-            <div class="filter-group">
-                <label class="filter-label">Cód. Elemento</label>
+            <div class="filter-group" style="flex:1;min-width:130px;">
+                <label class="filter-label">Cód. Elemento Despesa</label>
                 <input type="text" class="form-control" id="itemFiltroElem" list="itemListElem" placeholder="Código...">
                 <datalist id="itemListElem">${elementos.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
+            <div class="filter-group" style="flex:3;min-width:200px;">
+                <label class="filter-label">Elemento Despesa</label>
+                <input type="text" class="form-control" id="itemFiltroDescElem" list="itemListDescElem" placeholder="Descrição...">
+                <datalist id="itemListDescElem">${descsElem.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
+            </div>
+        </div>
+        <div class="filters-row" style="flex-wrap:wrap;gap:10px;margin-top:10px;">
             <div class="filter-group" style="flex:2;min-width:180px;">
                 <label class="filter-label">Órgão</label>
                 <input type="text" class="form-control" id="itemFiltroUnidade" list="itemListUnidade" placeholder="Órgão...">
                 <datalist id="itemListUnidade">${unidades.map(u=>`<option value="${u}">`).join('')}</datalist>
+            </div>
+            <div class="filter-group" style="flex:2;min-width:180px;">
+                <label class="filter-label">Processo de Compra</label>
+                <input type="text" class="form-control" id="itemFiltroProcesso" list="itemListProcesso" placeholder="Nº processo...">
+                <datalist id="itemListProcesso">${processos.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
+            </div>
+            <div class="filter-group" style="flex:2;min-width:180px;">
+                <label class="filter-label">Contrato</label>
+                <input type="text" class="form-control" id="itemFiltroContrato" list="itemListContrato" placeholder="Nº contrato...">
+                <datalist id="itemListContrato">${contratos.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
         </div>
         <div class="botoes-abaixo">
@@ -1348,6 +1403,7 @@ function renderizarConsultaItem() {
         <div class="table-fixed-header-container">
             <table class="table" id="itemTable">
                 <thead><tr>
+                    <th class="sortable-header" onclick="toggleSortItem('ano_empenho')">Ano <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('item_despesa_codigo')">Cód. Item <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('item_despesa_descricao')">Descrição do Item <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('elemento_despesa_codigo')">Cód. Elemento <i class="material-icons">unfold_more</i></th>
@@ -1358,6 +1414,7 @@ function renderizarConsultaItem() {
                     <th class="sortable-header" onclick="toggleSortItem('qtd_empenhos')">Qtd. Empenhos <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortItem('valor_despesa_empenhada')">Valor Empenhado <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortItem('valor_despesa_liquidada')">Valor Liquidado <i class="material-icons">unfold_more</i></th>
+                    <th class="text-center">Ações</th>
                 </tr></thead>
                 <tbody id="itemTableBody"></tbody>
                 <tfoot id="itemTableFoot"></tfoot>
@@ -1377,8 +1434,9 @@ function renderizarConsultaItem() {
 function agruparPorItem(dados) {
     const map = new Map();
     dados.forEach(d => {
-        const key = (d.item_despesa_codigo||'SEM_COD') + '|' + (d.item_despesa_descricao||'') + '|' + (d.elemento_despesa_codigo||'') + '|' + (d.elemento_despesa_descricao||'') + '|' + (d.unidade_orcamentaria_codigo||'') + '|' + (d.numero_processo_compra_siad||'') + '|' + (d._lic_numero_contrato||'');
+        const key = (d.ano_empenho||'') + '|' + (d.item_despesa_codigo||'SEM_COD') + '|' + (d.item_despesa_descricao||'') + '|' + (d.elemento_despesa_codigo||'') + '|' + (d.elemento_despesa_descricao||'') + '|' + (d.unidade_orcamentaria_codigo||'') + '|' + (d.numero_processo_compra_siad||'') + '|' + (d._lic_numero_contrato||'');
         if (!map.has(key)) map.set(key, {
+            ano_empenho: d.ano_empenho||'',
             item_despesa_codigo: d.item_despesa_codigo||'',
             item_despesa_descricao: d.item_despesa_descricao||'',
             elemento_despesa_codigo: d.elemento_despesa_codigo||'',
@@ -1401,18 +1459,24 @@ function agruparPorItem(dados) {
 }
 
 window.aplicarFiltrosItemInterno = function() {
-    const ano     = document.getElementById('itemFiltroAno')?.value;
-    const cod     = (document.getElementById('itemFiltroCod')?.value||'').toLowerCase().trim();
-    const desc    = (document.getElementById('itemFiltroDesc')?.value||'').toLowerCase().trim();
-    const elem    = (document.getElementById('itemFiltroElem')?.value||'').toLowerCase().trim();
-    const unidade = (document.getElementById('itemFiltroUnidade')?.value||'').toLowerCase().trim();
+    const ano      = document.getElementById('itemFiltroAno')?.value;
+    const cod      = (document.getElementById('itemFiltroCod')?.value||'').toLowerCase().trim();
+    const desc     = (document.getElementById('itemFiltroDesc')?.value||'').toLowerCase().trim();
+    const elem     = (document.getElementById('itemFiltroElem')?.value||'').toLowerCase().trim();
+    const descElem = (document.getElementById('itemFiltroDescElem')?.value||'').toLowerCase().trim();
+    const unidade  = (document.getElementById('itemFiltroUnidade')?.value||'').toLowerCase().trim();
+    const processo = (document.getElementById('itemFiltroProcesso')?.value||'').toLowerCase().trim();
+    const contrato = (document.getElementById('itemFiltroContrato')?.value||'').toLowerCase().trim();
 
     let dados = dadosConsolidados;
-    if (ano)     dados = dados.filter(d => d.ano_empenho == ano);
-    if (cod)     dados = dados.filter(d => (d.item_despesa_codigo||'').toLowerCase().includes(cod));
-    if (desc)    dados = dados.filter(d => (d.item_despesa_descricao||'').toLowerCase().includes(desc));
-    if (elem)    dados = dados.filter(d => (d.elemento_despesa_codigo||'').toLowerCase().includes(elem));
-    if (unidade) dados = dados.filter(d => (d.unidade_orcamentaria_nome||'').toLowerCase().includes(unidade));
+    if (ano)      dados = dados.filter(d => d.ano_empenho == ano);
+    if (cod)      dados = dados.filter(d => (d.item_despesa_codigo||'').toLowerCase().includes(cod));
+    if (desc)     dados = dados.filter(d => (d.item_despesa_descricao||'').toLowerCase().includes(desc));
+    if (elem)     dados = dados.filter(d => (d.elemento_despesa_codigo||'').toLowerCase().includes(elem));
+    if (descElem) dados = dados.filter(d => (d.elemento_despesa_descricao||'').toLowerCase().includes(descElem));
+    if (unidade)  dados = dados.filter(d => (d.unidade_orcamentaria_nome||'').toLowerCase().includes(unidade));
+    if (processo) dados = dados.filter(d => (d.numero_processo_compra_siad||'').toLowerCase().includes(processo));
+    if (contrato) dados = dados.filter(d => (d._lic_numero_contrato||'').toLowerCase().includes(contrato));
 
     dadosFiltradosItem = agruparPorItem(dados);
     dadosFiltradosItem = ordenarDadosGenerico(dadosFiltradosItem, sortItem.col, sortItem.dir);
@@ -1424,7 +1488,7 @@ window.aplicarFiltrosItemInterno = function() {
 window.limparFiltrosItem = function() {
     const anos = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
     const el = document.getElementById('itemFiltroAno'); if(el) el.value = anos[0]||'2026';
-    ['itemFiltroCod','itemFiltroDesc','itemFiltroElem','itemFiltroUnidade'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    ['itemFiltroCod','itemFiltroDesc','itemFiltroElem','itemFiltroDescElem','itemFiltroUnidade','itemFiltroProcesso','itemFiltroContrato'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
     aplicarFiltrosItemInterno();
 };
 
@@ -1439,6 +1503,7 @@ function atualizarTabelaItem() {
         const contratoUrl = item._lic_contrato_url||'';
         return `
         <tr>
+            <td>${item.ano_empenho||'-'}</td>
             <td>${item.item_despesa_codigo||'-'}</td>
             <td>${item.item_despesa_descricao||'-'}</td>
             <td>${item.elemento_despesa_codigo||'-'}</td>
@@ -1449,15 +1514,17 @@ function atualizarTabelaItem() {
             <td style="text-align:center;">${item.qtd_empenhos.toLocaleString('pt-BR')}</td>
             <td class="text-right" style="font-weight:600;color:#1a3a5c;">${formatarMoeda(item.valor_despesa_empenhada)}</td>
             <td class="text-right" style="color:#856404;">${formatarMoeda(item.valor_despesa_liquidada)}</td>
+            <td class="text-center"><button class="btn-action" onclick="verDetalhesItem('${String(item.item_despesa_codigo||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_codigo||'').replace(/'/g,"\\'")}','${String(item.numero_processo_compra_siad||'').replace(/'/g,"\\'")}','${String(item._lic_numero_contrato||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td>
         </tr>`;
     }).join('');
 
     const totais = dadosFiltradosItem.reduce((acc,d)=>{ acc.emp+=d.valor_despesa_empenhada; acc.liq+=d.valor_despesa_liquidada; return acc; },{emp:0,liq:0});
     document.getElementById('itemTableFoot').innerHTML = `<tr>
-        <td colspan="7"><strong>TOTAL (${dadosFiltradosItem.length} itens)</strong></td>
+        <td colspan="8"><strong>TOTAL (${dadosFiltradosItem.length} itens)</strong></td>
         <td style="text-align:center;font-weight:700;">${dadosFiltradosItem.reduce((s,d)=>s+d.qtd_empenhos,0).toLocaleString('pt-BR')}</td>
         <td class="text-right"><strong>${formatarMoeda(totais.emp)}</strong></td>
         <td class="text-right"><strong>${formatarMoeda(totais.liq)}</strong></td>
+        <td></td>
     </tr>`;
 
     const badge = document.getElementById('itemBadge'); if(badge) badge.textContent=`${dadosFiltradosItem.length} itens`;
@@ -1494,13 +1561,13 @@ window.buscarItem=function(termo){
     document.getElementById('itemTableBody').innerHTML=filtrado.slice(0,paginacaoItem.porPagina).map(item=>{
         const proc=item.numero_processo_compra_siad||'';const procUrl=proc?gerarUrlComprasMG(proc):null;
         const ct=item._lic_numero_contrato||'';const cu=item._lic_contrato_url||'';
-        return `<tr><td>${item.item_despesa_codigo||'-'}</td><td>${item.item_despesa_descricao||'-'}</td><td>${item.elemento_despesa_codigo||'-'}</td><td>${item.elemento_despesa_descricao||'-'}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.unidade_orcamentaria_nome||'-'}</td><td>${proc&&procUrl?`<a href="${procUrl}" target="_blank" class="compra-link">${proc} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(proc||'-')}</td><td>${ct&&cu?`<a href="${cu}" target="_blank" class="compra-link">${ct} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(ct||'-')}</td><td style="text-align:center;">${item.qtd_empenhos.toLocaleString('pt-BR')}</td><td class="text-right" style="font-weight:600;color:#1a3a5c;">${formatarMoeda(item.valor_despesa_empenhada)}</td><td class="text-right" style="color:#856404;">${formatarMoeda(item.valor_despesa_liquidada)}</td></tr>`;
+        return `<tr><td>${item.ano_empenho||'-'}</td><td>${item.item_despesa_codigo||'-'}</td><td>${item.item_despesa_descricao||'-'}</td><td>${item.elemento_despesa_codigo||'-'}</td><td>${item.elemento_despesa_descricao||'-'}</td><td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.unidade_orcamentaria_nome||'-'}</td><td>${proc&&procUrl?`<a href="${procUrl}" target="_blank" class="compra-link">${proc} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(proc||'-')}</td><td>${ct&&cu?`<a href="${cu}" target="_blank" class="compra-link">${ct} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(ct||'-')}</td><td style="text-align:center;">${item.qtd_empenhos.toLocaleString('pt-BR')}</td><td class="text-right" style="font-weight:600;color:#1a3a5c;">${formatarMoeda(item.valor_despesa_empenhada)}</td><td class="text-right" style="color:#856404;">${formatarMoeda(item.valor_despesa_liquidada)}</td><td class="text-center"><button class="btn-action" onclick="verDetalhesItem('${String(item.item_despesa_codigo||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_codigo||'').replace(/'/g,"\\'")}','${String(item.numero_processo_compra_siad||'').replace(/'/g,"\\'")}','${String(item._lic_numero_contrato||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td></tr>`;
     }).join('');
     const b=document.getElementById('itemBadge');if(b) b.textContent=`${filtrado.length} itens`;
 };
 window.exportarItemCSV=function(){
-    const headers=['Cód. Item','Descrição Item','Cód. Elemento','Elemento Despesa','Órgão','Processo de Compra','Contrato','Qtd. Empenhos','Valor Empenhado','Valor Liquidado'];
-    const rows=dadosFiltradosItem.map(d=>[d.item_despesa_codigo,d.item_despesa_descricao,d.elemento_despesa_codigo,d.elemento_despesa_descricao,d.unidade_orcamentaria_nome,d.numero_processo_compra_siad,d._lic_numero_contrato,d.qtd_empenhos,d.valor_despesa_empenhada,d.valor_despesa_liquidada]);
+    const headers=['Ano','Cód. Item','Descrição Item','Cód. Elemento','Elemento Despesa','Órgão','Processo de Compra','Contrato','Qtd. Empenhos','Valor Empenhado','Valor Liquidado'];
+    const rows=dadosFiltradosItem.map(d=>[d.ano_empenho,d.item_despesa_codigo,d.item_despesa_descricao,d.elemento_despesa_codigo,d.elemento_despesa_descricao,d.unidade_orcamentaria_nome,d.numero_processo_compra_siad,d._lic_numero_contrato,d.qtd_empenhos,d.valor_despesa_empenhada,d.valor_despesa_liquidada]);
     const csv=[headers.join(';'),...rows.map(r=>r.map(c=>`"${c||''}"`).join(';'))].join('\n');
     const blob=new Blob(['\uFEFF'+csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='despesa_por_item.csv';a.click();
 };
@@ -1618,9 +1685,6 @@ window.verDetalhesEmpenho = function(numEmpenho, codUnidade) {
         document.getElementById('modalContentLicitacao').innerHTML = `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:16px;margin:10px 0;font-size:13px;color:#795548;text-align:center;"><i class="material-icons" style="font-size:36px;display:block;margin-bottom:8px;color:#ffc107;">info</i>Este empenho não possui processo de compra vinculado no dataset de licitações.</div>`;
     }
 
-    const btnLic = document.getElementById('modal-licitacao-tab');
-    if (btnLic) btnLic.querySelector ? null : null;
-
     // Aba Empenhos - tabela com empenhos do mesmo processo de compra E contrato
     // Só mostra empenhos relacionados se houver processo de compra vinculado
     let empenhosRelacionados = [];
@@ -1633,8 +1697,8 @@ window.verDetalhesEmpenho = function(numEmpenho, codUnidade) {
             return true;
         }).slice(0, 200);
         labelRelacionado = item._lic_numero_contrato
-            ? `Empenhos vinculados ao processo <strong>${item.numero_processo_compra_siad}</strong> / contrato <strong>${item._lic_numero_contrato}</strong>`
-            : `Empenhos vinculados ao processo <strong>${item.numero_processo_compra_siad}</strong>`;
+            ? `Empenhos — Processo <strong>${item.numero_processo_compra_siad}</strong> / Contrato <strong>${item._lic_numero_contrato}</strong>`
+            : `Empenhos — Processo <strong>${item.numero_processo_compra_siad}</strong>`;
     } else {
         labelRelacionado = `<i class="material-icons" style="font-size:14px;vertical-align:middle;">info</i> Este empenho não possui processo de compra vinculado`;
     }
@@ -1642,96 +1706,99 @@ window.verDetalhesEmpenho = function(numEmpenho, codUnidade) {
     const totalEmp = empenhosRelacionados.reduce((s,d)=>s+d.valor_despesa_empenhada,0);
     const totalLiq = empenhosRelacionados.reduce((s,d)=>s+d.valor_despesa_liquidada,0);
 
-    // Pagamentos relacionados ao empenho atual
-    const pagamentosRelacionados = dadosPagamentos.filter(p =>
-        String(p['numero_empenho']||'').trim() === String(item.numero_empenho) &&
-        String(p['unidade_orcamentaria_codigo']||'').trim() === String(item.unidade_orcamentaria_codigo)
-    ).slice(0, 100);
-    const totalPagF = pagamentosRelacionados.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_financeiro']),0);
-    const totalPagP = pagamentosRelacionados.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_processado']),0);
-    const totalPagNP = pagamentosRelacionados.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_nao_processado']),0);
+    // Monta o conteúdo da aba: para cada empenho lista seus pagamentos
+    let empenhosHtml = '';
+    if (empenhosRelacionados.length > 0) {
+        empenhosHtml = empenhosRelacionados.map((e, i) => {
+            const isAtual = String(e.numero_empenho) === String(item.numero_empenho);
+            // Pagamentos SOMENTE deste empenho + mesmo processo de compra + mesmo contrato
+            const pagsDoEmpenho = dadosPagamentos.filter(p => {
+                if (String(p['numero_empenho']||'').trim() !== String(e.numero_empenho)) return false;
+                if (String(p['unidade_orcamentaria_codigo']||'').trim() !== String(e.unidade_orcamentaria_codigo)) return false;
+                if (e.numero_processo_compra_siad && p['numero_processo_compra_siad'] && p['numero_processo_compra_siad'] !== e.numero_processo_compra_siad) return false;
+                if (e._lic_numero_contrato && p['_lic_numero_contrato'] && p['_lic_numero_contrato'] !== e._lic_numero_contrato) return false;
+                return true;
+            }).slice(0, 100);
+            const totPagF = pagsDoEmpenho.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_financeiro']),0);
+            const totPagP = pagsDoEmpenho.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_processado']),0);
+            const totPagNP = pagsDoEmpenho.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_nao_processado']),0);
 
-    const tabelaPagamentos = pagamentosRelacionados.length > 0 ? `
-        <div style="background:#28a745;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;margin-top:16px;display:flex;align-items:center;gap:6px;">
-            <i class="material-icons" style="font-size:15px">payments</i> Pagamentos vinculados ao empenho ${item.numero_empenho}
-            <span style="margin-left:auto;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;font-size:11px;">${pagamentosRelacionados.length} registro(s)</span>
-        </div>
-        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 6px 6px;overflow:auto;max-height:280px;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                <thead><tr>
-                    <th style="background:#54697b;color:white;padding:8px 10px;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Ano</th>
-                    <th style="background:#54697b;color:white;padding:8px 10px;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Data Empenho</th>
-                    <th style="background:#54697b;color:white;padding:8px 10px;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Processo Compra</th>
-                    <th style="background:#54697b;color:white;padding:8px 10px;font-size:11px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Financeiro</th>
-                    <th style="background:#54697b;color:white;padding:8px 10px;font-size:11px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Processado RP</th>
-                    <th style="background:#54697b;color:white;padding:8px 10px;font-size:11px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Não Proc. RP</th>
-                </tr></thead>
-                <tbody>
-                    ${pagamentosRelacionados.map((p,i)=>`
-                    <tr style="background:${i%2===0?'#fff':'#f8fafd'};">
-                        <td style="padding:7px 10px;border-bottom:1px solid #f0f4f8;">${p['ano_empenho']||p['ano_de_exercicio']||'-'}</td>
-                        <td style="padding:7px 10px;border-bottom:1px solid #f0f4f8;white-space:nowrap;">${formatarData(p['data_registro_doc_empenho'])}</td>
-                        <td style="padding:7px 10px;border-bottom:1px solid #f0f4f8;">${p['numero_processo_compra_siad']||'-'}</td>
-                        <td style="padding:7px 10px;border-bottom:1px solid #f0f4f8;text-align:right;color:#155724;font-weight:600;">${formatarMoeda(p['valor_pago_financeiro'])}</td>
-                        <td style="padding:7px 10px;border-bottom:1px solid #f0f4f8;text-align:right;">${formatarMoeda(p['valor_pago_processado'])}</td>
-                        <td style="padding:7px 10px;border-bottom:1px solid #f0f4f8;text-align:right;">${formatarMoeda(p['valor_pago_nao_processado'])}</td>
-                    </tr>`).join('')}
-                </tbody>
-                <tfoot><tr style="background:#dfe3e8;font-weight:700;">
-                    <td colspan="3" style="padding:8px 10px;font-size:12px;">TOTAL</td>
-                    <td style="padding:8px 10px;text-align:right;color:#155724;">${formatarMoeda(totalPagF)}</td>
-                    <td style="padding:8px 10px;text-align:right;">${formatarMoeda(totalPagP)}</td>
-                    <td style="padding:8px 10px;text-align:right;">${formatarMoeda(totalPagNP)}</td>
-                </tr></tfoot>
-            </table>
-        </div>` : `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:10px 14px;margin-top:16px;font-size:12px;color:#795548;"><i class="material-icons" style="font-size:14px;vertical-align:middle;margin-right:4px;">info</i> Nenhum pagamento encontrado para este empenho nos dados disponíveis.</div>`;
+            const pagHtml = pagsDoEmpenho.length > 0 ? `
+                <div style="margin:6px 0 0 0;border-left:3px solid #3a6186;border-radius:0 6px 6px 6px;overflow:hidden;">
+                    <div style="background:#3a6186;color:white;padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;">
+                        <i class="material-icons" style="font-size:13px">payments</i> Pagamentos do Empenho ${e.numero_empenho}
+                        <span style="margin-left:auto;background:rgba(255,255,255,0.25);padding:1px 8px;border-radius:8px;font-size:10px;">${pagsDoEmpenho.length} registro(s)</span>
+                    </div>
+                    <div style="overflow:auto;max-height:200px;background:#f5f8fb;">
+                        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                            <thead><tr>
+                                <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Ano</th>
+                                <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Data</th>
+                                <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Financeiro</th>
+                                <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Proc. RP</th>
+                                <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Não Proc. RP</th>
+                            </tr></thead>
+                            <tbody>
+                                ${pagsDoEmpenho.map((p,pi)=>`
+                                <tr style="background:${pi%2===0?'#fff':'#f0f4f8'};">
+                                    <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;">${p['ano_empenho']||p['ano_de_exercicio']||'-'}</td>
+                                    <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;white-space:nowrap;">${formatarData(p['data_registro_doc_empenho'])}</td>
+                                    <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;text-align:right;color:#1a3a5c;font-weight:600;">${formatarMoeda(p['valor_pago_financeiro'])}</td>
+                                    <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;text-align:right;">${formatarMoeda(p['valor_pago_processado'])}</td>
+                                    <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;text-align:right;">${formatarMoeda(p['valor_pago_nao_processado'])}</td>
+                                </tr>`).join('')}
+                            </tbody>
+                            <tfoot><tr style="background:#dde7f0;font-weight:700;">
+                                <td colspan="2" style="padding:5px 8px;font-size:11px;">TOTAL</td>
+                                <td style="padding:5px 8px;text-align:right;color:#1a3a5c;">${formatarMoeda(totPagF)}</td>
+                                <td style="padding:5px 8px;text-align:right;">${formatarMoeda(totPagP)}</td>
+                                <td style="padding:5px 8px;text-align:right;">${formatarMoeda(totPagNP)}</td>
+                            </tr></tfoot>
+                        </table>
+                    </div>
+                </div>` : `<div style="color:#795548;font-size:11px;padding:4px 8px;margin-top:4px;font-style:italic;"><i class="material-icons" style="font-size:12px;vertical-align:middle;">info</i> Nenhum pagamento encontrado para este empenho.</div>`;
+
+            return `
+            <div style="background:${isAtual?'#e8f0fe':'#f8fafd'};border:${isAtual?'2px solid #1a3a5c':'1px solid #e2e8f0'};border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                    <span style="font-size:13px;font-weight:700;color:#1a3a5c;">Empenho ${e.numero_empenho||'-'}</span>
+                    ${isAtual?'<span style="background:#1a3a5c;color:white;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:700;">ATUAL</span>':''}
+                    <span style="font-size:11px;color:#64748b;">Ano: ${e.ano_empenho||'-'} | ${formatarData(e.data_registro_doc_empenho)}</span>
+                    <span style="font-size:11px;color:#64748b;margin-left:auto;">Credor: <strong>${e.razao_social_credor||'-'}</strong></span>
+                </div>
+                <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;padding-bottom:6px;border-bottom:1px solid #dee2e6;">
+                    <span>Empenhado: <strong style="color:#1a3a5c;">${formatarMoeda(e.valor_despesa_empenhada)}</strong></span>
+                    <span>Liquidado: <strong style="color:#856404;">${formatarMoeda(e.valor_despesa_liquidada)}</strong></span>
+                </div>
+                ${pagHtml}
+            </div>`;
+        }).join('');
+    }
 
     document.getElementById('modalContentEmpenhos').innerHTML = `
-        <div style="background:#1a3a5c;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
+        <div style="background:#1a3a5c;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:10px;">
             <i class="material-icons" style="font-size:15px">receipt_long</i> ${labelRelacionado}
-            ${empenhosRelacionados.length > 0 ? `<span style="margin-left:auto;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;font-size:11px;">${empenhosRelacionados.length} registro(s)</span>` : ''}
+            ${empenhosRelacionados.length > 0 ? `<span style="margin-left:auto;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;font-size:11px;">${empenhosRelacionados.length} empenho(s)</span>` : ''}
         </div>
         ${empenhosRelacionados.length > 0 ? `
-        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 6px 6px;overflow:auto;max-height:320px;">
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                <thead>
-                    <tr>
-                        <th style="background:#54697b;color:white;padding:9px 10px;text-align:left;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Ano</th>
-                        <th style="background:#54697b;color:white;padding:9px 10px;text-align:left;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Nº Empenho</th>
-                        <th style="background:#54697b;color:white;padding:9px 10px;text-align:left;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Data Registro</th>
-                        <th style="background:#54697b;color:white;padding:9px 10px;text-align:left;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Órgão</th>
-                        <th style="background:#54697b;color:white;padding:9px 10px;text-align:left;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Credor</th>
-                        <th style="background:#54697b;color:white;padding:9px 10px;text-align:right;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Valor Empenhado</th>
-                        <th style="background:#54697b;color:white;padding:9px 10px;text-align:right;font-size:11px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Valor Liquidado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${empenhosRelacionados.map((e,i) => `
-                    <tr style="background:${i%2===0?'#fff':'#f8fafd'};${String(e.numero_empenho)===String(item.numero_empenho)?'font-weight:700;background:#e8f0fe;':''}" >
-                        <td style="padding:8px 10px;border-bottom:1px solid #f0f4f8;">${e.ano_empenho||'-'}</td>
-                        <td style="padding:8px 10px;border-bottom:1px solid #f0f4f8;">
-                            <a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${String(e.numero_empenho||'').replace(/'/g,"\\'")}','${String(e.unidade_orcamentaria_codigo||'').replace(/'/g,"\\'")}');return false;">${e.numero_empenho||'-'}</a>
-                            ${String(e.numero_empenho)===String(item.numero_empenho)?'<span style="background:#1a3a5c;color:white;padding:1px 7px;border-radius:10px;font-size:10px;margin-left:5px;">atual</span>':''}
-                        </td>
-                        <td style="padding:8px 10px;border-bottom:1px solid #f0f4f8;white-space:nowrap;">${formatarData(e.data_registro_doc_empenho)}</td>
-                        <td style="padding:8px 10px;border-bottom:1px solid #f0f4f8;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e.unidade_orcamentaria_nome||''}">${(e.unidade_orcamentaria_nome||'-').substring(0,30)}</td>
-                        <td style="padding:8px 10px;border-bottom:1px solid #f0f4f8;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${e.razao_social_credor||''}">${e.razao_social_credor||'-'}</td>
-                        <td style="padding:8px 10px;border-bottom:1px solid #f0f4f8;text-align:right;white-space:nowrap;color:#1a3a5c;font-weight:600;">${formatarMoeda(e.valor_despesa_empenhada)}</td>
-                        <td style="padding:8px 10px;border-bottom:1px solid #f0f4f8;text-align:right;white-space:nowrap;color:#856404;">${formatarMoeda(e.valor_despesa_liquidada)}</td>
-                    </tr>`).join('')}
-                </tbody>
-                <tfoot>
-                    <tr style="background:#dfe3e8;font-weight:700;">
-                        <td colspan="5" style="padding:8px 10px;font-size:12px;">TOTAL (${empenhosRelacionados.length} empenhos)</td>
-                        <td style="padding:8px 10px;text-align:right;color:#1a3a5c;">${formatarMoeda(totalEmp)}</td>
-                        <td style="padding:8px 10px;text-align:right;color:#856404;">${formatarMoeda(totalLiq)}</td>
-                    </tr>
-                </tfoot>
-            </table>
-        </div>` : `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;border-top:none;padding:14px;font-size:13px;color:#795548;text-align:center;">Este empenho não possui processo de compra vinculado, portanto não é possível listar empenhos relacionados.</div>`}
-        ${tabelaPagamentos}`;
+        <div style="padding:0 2px;">
+            <div style="display:flex;gap:20px;background:#f0f4f8;border-radius:6px;padding:8px 14px;margin-bottom:10px;font-size:12px;flex-wrap:wrap;">
+                <span>Total Empenhado: <strong style="color:#1a3a5c;">${formatarMoeda(totalEmp)}</strong></span>
+                <span>Total Liquidado: <strong style="color:#856404;">${formatarMoeda(totalLiq)}</strong></span>
+            </div>
+            ${empenhosHtml}
+        </div>` : `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:16px;font-size:13px;color:#795548;text-align:center;"><i class="material-icons" style="font-size:36px;display:block;margin-bottom:8px;color:#ffc107;">info</i>Este empenho não possui processo de compra vinculado, portanto não é possível listar empenhos relacionados.</div>`
+        }`;
 
-    new bootstrap.Modal(document.getElementById('detailModal')).show();
+    new bootstrap.Modal(document.getElementById('detailModal'), {
+        backdrop: true,
+        keyboard: true,
+        focus: false
+    }).show();
+    // Prevent iframe scroll-into-view issues
+    setTimeout(() => {
+        try { document.getElementById('detailModal').removeAttribute('tabindex'); } catch(e) {}
+    }, 50);
 };
 
 // Reset modal tabs on open
@@ -1745,41 +1812,63 @@ document.addEventListener('show.bs.modal', function(e) {
 // ============================================================
 // 8. DOWNLOADS
 // ============================================================
+async function baixarCSV(url, nomeArquivo) {
+    const btn = document.querySelector(`[data-dl="${nomeArquivo}"]`);
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="material-icons" style="animation:spin 1s linear infinite">refresh</i> Baixando...'; }
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error('Falha ao baixar');
+        const texto = await resp.text();
+        const blob = new Blob([texto], { type: 'text/csv;charset=utf-8;' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = nomeArquivo;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+        mostrarToast(`${nomeArquivo} baixado com sucesso!`, 'success');
+    } catch(e) {
+        mostrarToast('Erro ao baixar o arquivo. Tente novamente.', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = `<i class="material-icons">download</i> Baixar`; }
+    }
+}
+
 function renderizarDownloads() {
     const container = document.getElementById('downloads-content');
     if (!container) return;
 
     const arquivos = [
-        { tipo: 'empenho', label: 'Empenho', descricao: 'Dados de empenhos por unidade orçamentária. Contém: ano, unidade, nº empenho, credor, elemento, item, fonte de recurso, valores empenhados e liquidados.', colunas: 'ano_de_exercicio; unidade_orcamentaria_codigo; unidade_orcamentaria_nome; ano_empenho; numero_empenho; data_registro_doc_empenho; numero_processo_compra_siad; elemento_despesa_codigo; elemento_despesa_descricao; item_despesa_codigo; item_despesa_descricao; fonte_recurso_codigo; fonte_recurso_descricao; razao_social_credor; cnpj_cpf_credor_formatado; valor_despesa_empenhada; valor_despesa_liquidada' },
-        { tipo: 'orgao', label: 'Órgão', descricao: 'Dados consolidados por unidade orçamentária com todos os valores financeiros: empenhado, liquidado, pago financeiro, pago processado, pago não processado e restos a pagar.', colunas: 'ano_de_exercicio; unidade_orcamentaria_codigo; unidade_orcamentaria_nome; valor_despesa_empenhada; valor_despesa_liquidada; valor_pago_financeiro; valor_pago_processado; valor_pago_nao_processado; valor_pago_rp' },
-        { tipo: 'pagamento', label: 'Pagamento', descricao: 'Dados de pagamentos por empenho, incluindo modalidade de licitação, item, elemento, fonte de recurso, credor e detalhamento dos valores pagos (financeiro, processado, não processado).', colunas: 'ano_de_exercicio; unidade_orcamentaria_codigo; unidade_orcamentaria_nome; ano_empenho; numero_empenho; data_registro_doc_empenho; numero_processo_compra_siad; licitacao_descricao_da_modalidade; elemento_despesa_codigo; elemento_despesa_descricao; item_despesa_codigo; item_despesa_descricao; fonte_recurso_codigo; fonte_recurso_descricao; razao_social_credor; cnpj_cpf_credor_formatado; valor_pago_financeiro; valor_pago_processado; valor_pago_nao_processado' },
+        { tipo: 'empenho', label: 'Empenho', icone: 'receipt_long', descricao: 'Dados de empenhos por unidade orçamentária: ano, unidade, nº empenho, credor, elemento, item, fonte de recurso, valores empenhados e liquidados.' },
+        { tipo: 'orgao', label: 'Órgão', icone: 'account_balance', descricao: 'Dados por unidade orçamentária com todos os valores financeiros: empenhado, liquidado, pago financeiro, pago processado, pago não processado.' },
+        { tipo: 'pagamento', label: 'Pagamento', icone: 'payments', descricao: 'Dados de pagamentos por empenho, incluindo modalidade de licitação, item, elemento, fonte de recurso, credor e detalhamento dos valores pagos.' },
     ];
 
-    const rowsArquivos = ANOS_DISPONIVEIS.slice().reverse().flatMap(ano =>
-        arquivos.map(arq => {
-            const baseUrl = arq.tipo === 'empenho'
-                ? `${URL_EMPENHO_BASE_V2}${ano}.csv`
-                : arq.tipo === 'pagamento'
-                    ? `${URL_PAGAMENTO_BASE}${ano}.csv`
-                    : `${URL_ORGAO_BASE_V2}${ano}.csv`;
-            const githubUrl = `https://github.com/transparencia-mg/portal_despesa_empenho/blob/main/dataset/data/${arq.tipo}${ano}.csv`;
-            return { ano, ...arq, baseUrl, githubUrl };
-        })
-    );
+    const anos = ANOS_DISPONIVEIS.slice().reverse();
+
+    const gerarUrl = (tipo, ano) => {
+        if (tipo === 'empenho') return `${URL_EMPENHO_BASE_V2}${ano}.csv`;
+        if (tipo === 'pagamento') return `${URL_PAGAMENTO_BASE}${ano}.csv`;
+        return `${URL_ORGAO_BASE_V2}${ano}.csv`;
+    };
 
     container.innerHTML = `
+    <style>
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
     <div class="filter-container">
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <i class="material-icons" style="font-size:32px;color:#20445d;">cloud_download</i>
             <div>
-                <h5 style="font-size:15px;font-weight:700;color:#20445d;margin:0;">Downloads — Bases de Dados</h5>
-                <p style="color:#6c757d;font-size:12px;margin:0;">Baixe os arquivos CSV diretamente do repositório GitHub da Transparência MG ou acesse o Portal de Dados Abertos</p>
+                <h5 style="font-size:15px;font-weight:700;color:#20445d;margin:0;">Downloads - Bases de Dados</h5>
+                <p style="color:#6c757d;font-size:12px;margin:0;">Baixe os arquivos CSV disponíveis ou acesse o Portal de Dados Abertos</p>
             </div>
         </div>
         <div style="margin-top:16px;padding:16px;background:linear-gradient(135deg,#1a3a5c,#20445d);border-radius:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
             <div style="flex:1;min-width:200px;">
                 <div style="color:rgba(255,255,255,0.8);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Portal de Dados Abertos</div>
-                <div style="color:white;font-size:13px;">Acesse o dataset completo, metadados e histórico de atualizações no Portal de Dados Abertos de Minas Gerais.</div>
+                <div style="color:white;font-size:13px;">Acesse o dataset completo, metadados e histórico de atualizações no Portal de Dados MG</div>
             </div>
             <a href="${PORTAL_DADOS_ABERTOS_URL}" target="_blank" class="btn-pesquisa text-decoration-none" style="background:white;color:#1a3a5c;font-weight:700;padding:0 20px;height:40px;border-radius:8px;flex-shrink:0;">
                 <i class="material-icons" style="color:#b93c42;">open_in_new</i> Acessar Portal de Dados MG
@@ -1788,16 +1877,26 @@ function renderizarDownloads() {
     </div>
 
     <div class="filter-container">
-        <h5 style="font-size:14px;font-weight:700;color:#20445d;margin-bottom:12px;"><i class="material-icons" style="vertical-align:middle;margin-right:4px;">download</i> Exportar dados consultados</h5>
-        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-            <button class="btn-export" style="height:36px;" onclick="exportarTabelaVGCSV()"><i class="material-icons">description</i> CSV — Visão Geral por Órgão</button>
-            <button class="btn-export" style="height:36px;" onclick="exportarConsultaCSV()"><i class="material-icons">description</i> CSV — Despesa por Empenho</button>
-            <button class="btn-export" style="height:36px;" onclick="exportarItemCSV()"><i class="material-icons">description</i> CSV — Despesa por Item</button>
-            <button class="btn-export" style="height:36px;" onclick="exportarTabelaVGPDF()"><i class="material-icons">print</i> PDF — Visão Geral</button>
-            <button class="btn-export" style="height:36px;" onclick="exportarConsultaPDF()"><i class="material-icons">print</i> PDF — Empenhos</button>
-            <button class="btn-export" style="height:36px;" onclick="exportarItemPDF()"><i class="material-icons">print</i> PDF — Itens</button>
-            <button class="btn-export" style="height:36px;" onclick="copiarLinkPagina()"><i class="material-icons">link</i> Copiar Link</button>
-        </div>
+        <h5 style="font-size:14px;font-weight:700;color:#20445d;margin-bottom:4px;"><i class="material-icons" style="vertical-align:middle;margin-right:4px;">folder_open</i> Arquivos CSV por Ano e Tema</h5>
+        <p style="font-size:12px;color:#6c757d;margin-bottom:16px;"></p>
+
+        ${arquivos.map(arq => `
+        <div style="margin-bottom:20px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid #e9ecef;">
+                <i class="material-icons" style="color:#20445d;font-size:20px;">${arq.icone}</i>
+                <span style="font-size:13px;font-weight:700;color:#20445d;">${arq.label}</span>
+                <span style="font-size:11px;color:#6c757d;margin-left:4px;">— ${arq.descricao}</span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+                ${anos.map(ano => {
+                    const url = gerarUrl(arq.tipo, ano);
+                    const nome = `${arq.tipo}${ano}.csv`;
+                    return `<button class="btn-export" style="height:34px;gap:6px;" data-dl="${nome}" onclick="baixarCSV('${url}','${nome}')">
+                        <i class="material-icons" style="font-size:14px;">download</i> ${ano}
+                    </button>`;
+                }).join('')}
+            </div>
+        </div>`).join('')}
     </div>`;
     setTimeout(iframeUpdateHeight, 300);
 }
@@ -1891,9 +1990,6 @@ function renderizarDicionario() {
         <div class="metadata-container dic-section" data-tabela="${tabela}">
             <div class="metadata-header"><i class="material-icons me-2" style="vertical-align:middle;">table_chart</i>${labelsTabela[tabela]||tabela}
                 <span style="margin-left:8px;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;font-size:11px;">${DICIONARIO[tabela].length} campos</span>
-                <a href="https://github.com/transparencia-mg/portal_despesa_empenho/blob/main/dataset/data/${tabela}2026.csv" target="_blank" style="margin-left:auto;color:rgba(255,255,255,0.85);font-size:11px;display:flex;align-items:center;gap:3px;text-decoration:none;">
-                    <i class="material-icons" style="font-size:14px;">open_in_new</i> Ver no GitHub
-                </a>
             </div>
             <div class="table-responsive">
                 <table class="metadata-table" id="dicTabela_${tabela}">
@@ -2067,6 +2163,189 @@ window.copiarLinkPagina = copiarLinkPagina;
 // ============================================================
 document.addEventListener('click', e => {
     if (!e.target.closest('.column-selector')) document.querySelectorAll('.column-selector-dropdown').forEach(d => d.classList.remove('show'));
+});
+
+// ============================================================
+// 7b. MODAL DETALHES ITEM
+// ============================================================
+window.verDetalhesItem = function(itemCod, codUnidade, processoCompra, numContrato) {
+    // Busca todos os empenhos do mesmo item + processo de compra + contrato
+    const empenhosDoItem = dadosConsolidados.filter(d => {
+        if (itemCod && d.item_despesa_codigo !== itemCod) return false;
+        if (codUnidade && d.unidade_orcamentaria_codigo !== codUnidade) return false;
+        if (processoCompra && d.numero_processo_compra_siad !== processoCompra) return false;
+        if (numContrato && d._lic_numero_contrato && d._lic_numero_contrato !== numContrato) return false;
+        return true;
+    }).slice(0, 200);
+
+    if (empenhosDoItem.length === 0) return;
+    const ref = empenhosDoItem[0];
+    const urlCompra = processoCompra ? gerarUrlComprasMG(processoCompra) : null;
+    const editalUrl = ref._lic_edital_url || '';
+    const contratoUrl = ref._lic_contrato_url || '';
+    const urlFinalProcesso = urlCompra || editalUrl || '';
+
+    // Aba Dados Gerais
+    document.getElementById('itemModalContentDados').innerHTML = `
+        <div style="background:#1a3a5c;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
+            <i class="material-icons" style="font-size:15px">inventory_2</i> Item de Despesa
+        </div>
+        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 6px 6px;padding:14px;margin-bottom:10px;">
+            <div class="row g-2">
+                <div class="col-md-2"><div class="info-label">Cód. Item</div><div class="info-value" style="font-size:16px;font-weight:700;color:#1a3a5c;">${ref.item_despesa_codigo||'-'}</div></div>
+                <div class="col-md-6"><div class="info-label">Descrição do Item</div><div class="info-value">${ref.item_despesa_descricao||'-'}</div></div>
+                <div class="col-md-2"><div class="info-label">Cód. Elemento</div><div class="info-value">${ref.elemento_despesa_codigo||'-'}</div></div>
+                <div class="col-md-2"><div class="info-label">Elemento Despesa</div><div class="info-value">${ref.elemento_despesa_descricao||'-'}</div></div>
+                <div class="col-md-5"><div class="info-label">Órgão</div><div class="info-value">${ref.unidade_orcamentaria_codigo?'['+ref.unidade_orcamentaria_codigo+'] ':''} ${ref.unidade_orcamentaria_nome||'-'}</div></div>
+                <div class="col-md-4"><div class="info-label">Modalidade de Licitação</div><div class="info-value">${ref.licitacao_descricao_da_modalidade||'-'}</div></div>
+                <div class="col-md-3"><div class="info-label">Qtd. Empenhos</div><div class="info-value">${empenhosDoItem.length.toLocaleString('pt-BR')}</div></div>
+            </div>
+        </div>
+        <div style="background:#20445d;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;margin-top:8px;display:flex;align-items:center;gap:6px;">
+            <i class="material-icons" style="font-size:15px">account_balance_wallet</i> Valores Totais
+        </div>
+        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 6px 6px;padding:14px;margin-bottom:8px;">
+            <div class="row g-2">
+                <div class="col-md-4"><div class="info-label">Total Empenhado</div><div class="info-value" style="font-size:15px;font-weight:700;color:#1a3a5c;">${formatarMoeda(empenhosDoItem.reduce((s,d)=>s+d.valor_despesa_empenhada,0))}</div></div>
+                <div class="col-md-4"><div class="info-label">Total Liquidado</div><div class="info-value" style="font-size:15px;font-weight:700;color:#856404;">${formatarMoeda(empenhosDoItem.reduce((s,d)=>s+d.valor_despesa_liquidada,0))}</div></div>
+            </div>
+        </div>`;
+
+    // Aba Processo de Compra
+    if (processoCompra && ref._lic_procedimento_grupo || ref.objeto_processo) {
+        document.getElementById('itemModalContentCompra').innerHTML = `
+        <div style="background:#1a3a5c;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;">
+            <i class="material-icons" style="font-size:15px">gavel</i> Dados da Licitação / Processo de Compra
+        </div>
+        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 6px 6px;padding:14px;margin-bottom:8px;">
+            <div class="row g-2">
+                <div class="col-md-4"><div class="info-label">Nº Processo Compra (SIAD)</div>
+                    <div class="info-value">${urlFinalProcesso?`<a href="${urlFinalProcesso}" target="_blank" class="compra-link">${processoCompra} <i class="material-icons" style="font-size:13px">open_in_new</i></a>`:(processoCompra||'-')}</div>
+                </div>
+                <div class="col-md-4"><div class="info-label">Nº Contrato</div>
+                    <div class="info-value">${numContrato&&contratoUrl?`<a href="${contratoUrl}" target="_blank" class="compra-link">${numContrato} <i class="material-icons" style="font-size:13px">open_in_new</i></a>`:(numContrato||'-')}</div>
+                </div>
+                <div class="col-md-4"><div class="info-label">Situação</div><div class="info-value">${ref._lic_situacao_processo||'-'}</div></div>
+                <div class="col-12"><div class="info-label">Objeto</div>
+                    <div class="info-value" style="background:#fff;border:1px solid #e2e8f0;border-radius:4px;padding:6px 10px;font-size:12px;line-height:1.5;">${ref.objeto_processo||'-'}</div>
+                </div>
+                <div class="col-md-3"><div class="info-label">Modalidade / Grupo</div><div class="info-value">${ref._lic_procedimento_grupo||ref.licitacao_descricao_da_modalidade||'-'}</div></div>
+                <div class="col-md-3"><div class="info-label">Detalhamento</div><div class="info-value">${ref._lic_procedimento_det1||'-'}</div></div>
+                <div class="col-md-3"><div class="info-label">Especialização</div><div class="info-value">${ref._lic_procedimento_esp||'-'}</div></div>
+                <div class="col-md-3"><div class="info-label">Critério de Julgamento</div><div class="info-value">${ref._lic_criterio_julgamento||'-'}</div></div>
+                <div class="col-md-4"><div class="info-label">Órgão Comprador</div><div class="info-value">${ref._lic_nome_orgao||'-'}</div></div>
+                <div class="col-md-2"><div class="info-label">Ano Criação</div><div class="info-value">${ref._lic_ano_criacao_pedido||'-'}</div></div>
+                <div class="col-md-3"><div class="info-label">Valor Referência</div><div class="info-value">${ref._lic_valor_referencia?formatarMoeda(ref._lic_valor_referencia):'-'}</div></div>
+                <div class="col-md-3"><div class="info-label">Valor Homologado</div><div class="info-value">${ref._lic_valor_homologado?formatarMoeda(ref._lic_valor_homologado):'-'}</div></div>
+                ${editalUrl?`<div class="col-md-6"><div class="info-label">Edital</div><div class="info-value"><a href="${editalUrl}" target="_blank" class="btn-pesquisa" style="font-size:11px;height:28px;padding:0 10px;"><i class="material-icons" style="font-size:13px">description</i> Acessar Edital</a></div></div>`:''}
+                ${contratoUrl&&numContrato?`<div class="col-md-6"><div class="info-label">Contrato</div><div class="info-value"><a href="${contratoUrl}" target="_blank" class="btn-pesquisa" style="font-size:11px;height:28px;padding:0 10px;"><i class="material-icons" style="font-size:13px">article</i> Acessar Contrato</a></div></div>`:''}
+            </div>
+        </div>`;
+    } else {
+        document.getElementById('itemModalContentCompra').innerHTML = `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:16px;margin:10px 0;font-size:13px;color:#795548;text-align:center;"><i class="material-icons" style="font-size:36px;display:block;margin-bottom:8px;color:#ffc107;">info</i>Este item não possui processo de compra vinculado no dataset de licitações.</div>`;
+    }
+
+    // Aba Empenhos e Pagamentos - cada empenho com seus pagamentos
+    const totalEmpItem = empenhosDoItem.reduce((s,d)=>s+d.valor_despesa_empenhada,0);
+    const totalLiqItem = empenhosDoItem.reduce((s,d)=>s+d.valor_despesa_liquidada,0);
+
+    const empenhosHtmlItem = empenhosDoItem.map((e) => {
+        const pagsDoEmpenho = dadosPagamentos.filter(p => {
+            if (String(p['numero_empenho']||'').trim() !== String(e.numero_empenho)) return false;
+            if (String(p['unidade_orcamentaria_codigo']||'').trim() !== String(e.unidade_orcamentaria_codigo)) return false;
+            if (e.numero_processo_compra_siad && p['numero_processo_compra_siad'] && p['numero_processo_compra_siad'] !== e.numero_processo_compra_siad) return false;
+            if (e._lic_numero_contrato && p['_lic_numero_contrato'] && p['_lic_numero_contrato'] !== e._lic_numero_contrato) return false;
+            return true;
+        }).slice(0, 100);
+        const totPagF = pagsDoEmpenho.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_financeiro']),0);
+        const totPagP = pagsDoEmpenho.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_processado']),0);
+        const totPagNP = pagsDoEmpenho.reduce((s,p)=>s+parsearValorMonetario(p['valor_pago_nao_processado']),0);
+
+        const pagHtml = pagsDoEmpenho.length > 0 ? `
+            <div style="margin:6px 0 0 0;border-left:3px solid #3a6186;border-radius:0 6px 6px 6px;overflow:hidden;">
+                <div style="background:#3a6186;color:white;padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;">
+                    <i class="material-icons" style="font-size:13px">payments</i> Pagamentos do Empenho ${e.numero_empenho}
+                    <span style="margin-left:auto;background:rgba(255,255,255,0.25);padding:1px 8px;border-radius:8px;font-size:10px;">${pagsDoEmpenho.length} registro(s)</span>
+                </div>
+                <div style="overflow:auto;max-height:200px;background:#f5f8fb;">
+                    <table style="width:100%;border-collapse:collapse;font-size:11px;">
+                        <thead><tr>
+                            <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Ano</th>
+                            <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Data</th>
+                            <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Financeiro</th>
+                            <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Proc. RP</th>
+                            <th style="background:#3a6186;color:white;padding:6px 8px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago Não Proc. RP</th>
+                        </tr></thead>
+                        <tbody>
+                            ${pagsDoEmpenho.map((p,pi)=>`
+                            <tr style="background:${pi%2===0?'#fff':'#f0f4f8'};">
+                                <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;">${p['ano_empenho']||p['ano_de_exercicio']||'-'}</td>
+                                <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;white-space:nowrap;">${formatarData(p['data_registro_doc_empenho'])}</td>
+                                <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;text-align:right;color:#1a3a5c;font-weight:600;">${formatarMoeda(p['valor_pago_financeiro'])}</td>
+                                <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;text-align:right;">${formatarMoeda(p['valor_pago_processado'])}</td>
+                                <td style="padding:5px 8px;border-bottom:1px solid #dde9f5;text-align:right;">${formatarMoeda(p['valor_pago_nao_processado'])}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                        <tfoot><tr style="background:#dde7f0;font-weight:700;">
+                            <td colspan="2" style="padding:5px 8px;font-size:11px;">TOTAL</td>
+                            <td style="padding:5px 8px;text-align:right;color:#1a3a5c;">${formatarMoeda(totPagF)}</td>
+                            <td style="padding:5px 8px;text-align:right;">${formatarMoeda(totPagP)}</td>
+                            <td style="padding:5px 8px;text-align:right;">${formatarMoeda(totPagNP)}</td>
+                        </tr></tfoot>
+                    </table>
+                </div>
+            </div>` : `<div style="color:#795548;font-size:11px;padding:4px 8px;margin-top:4px;font-style:italic;"><i class="material-icons" style="font-size:12px;vertical-align:middle;">info</i> Nenhum pagamento encontrado para este empenho.</div>`;
+
+        return `
+        <div style="background:#f8fafd;border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;">
+                <span style="font-size:13px;font-weight:700;color:#1a3a5c;">Empenho ${e.numero_empenho||'-'}</span>
+                <span style="font-size:11px;color:#64748b;">Ano: ${e.ano_empenho||'-'} | ${formatarData(e.data_registro_doc_empenho)}</span>
+                <span style="font-size:11px;color:#64748b;margin-left:auto;">Credor: <strong>${e.razao_social_credor||'-'}</strong></span>
+            </div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;padding-bottom:6px;border-bottom:1px solid #dee2e6;">
+                <span>Empenhado: <strong style="color:#1a3a5c;">${formatarMoeda(e.valor_despesa_empenhada)}</strong></span>
+                <span>Liquidado: <strong style="color:#856404;">${formatarMoeda(e.valor_despesa_liquidada)}</strong></span>
+            </div>
+            ${pagHtml}
+        </div>`;
+    }).join('');
+
+    const labelItem = processoCompra
+        ? (numContrato ? `Empenhos — Item <strong>${itemCod}</strong> / Processo <strong>${processoCompra}</strong> / Contrato <strong>${numContrato}</strong>` : `Empenhos — Item <strong>${itemCod}</strong> / Processo <strong>${processoCompra}</strong>`)
+        : `Empenhos com Item <strong>${itemCod}</strong>`;
+
+    document.getElementById('itemModalContentEmpenhos').innerHTML = `
+        <div style="background:#1a3a5c;color:white;padding:8px 14px;border-radius:6px 6px 0 0;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+            <i class="material-icons" style="font-size:15px">receipt_long</i> ${labelItem}
+            <span style="margin-left:auto;background:rgba(255,255,255,0.2);padding:2px 10px;border-radius:10px;font-size:11px;">${empenhosDoItem.length} empenho(s)</span>
+        </div>
+        <div style="padding:0 2px;">
+            <div style="display:flex;gap:20px;background:#f0f4f8;border-radius:6px;padding:8px 14px;margin-bottom:10px;font-size:12px;flex-wrap:wrap;">
+                <span>Total Empenhado: <strong style="color:#1a3a5c;">${formatarMoeda(totalEmpItem)}</strong></span>
+                <span>Total Liquidado: <strong style="color:#856404;">${formatarMoeda(totalLiqItem)}</strong></span>
+            </div>
+            ${empenhosHtmlItem}
+        </div>`;
+
+    // Reset to first tab
+    const firstTab = document.getElementById('item-modal-dados-tab');
+    if (firstTab) new bootstrap.Tab(firstTab).show();
+
+    new bootstrap.Modal(document.getElementById('itemDetailModal'), {
+        backdrop: true, keyboard: true, focus: false
+    }).show();
+    setTimeout(() => {
+        try { document.getElementById('itemDetailModal').removeAttribute('tabindex'); } catch(e) {}
+    }, 50);
+};
+
+// Reset item modal tabs on open
+document.addEventListener('show.bs.modal', function(e) {
+    if (e.target.id === 'itemDetailModal') {
+        const tab = document.getElementById('item-modal-dados-tab');
+        if (tab) new bootstrap.Tab(tab).show();
+    }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
