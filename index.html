@@ -122,6 +122,11 @@
         .info-value { font-size: 13px; font-weight: 500; color: #1e293b; word-break: break-word; }
         .info-value.highlight { font-size: 15px; color: var(--primary-dark); font-weight: 700; }
 
+        /* Impede o modal de arrastar a página para baixo */
+        .modal { overflow-y: auto !important; }
+        .modal-open { overflow: hidden !important; padding-right: 0 !important; }
+        body.modal-open { position: static !important; overflow: hidden !important; }
+
         /* Paginação */
         .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: white; border-top: 1px solid #dee2e6; width: 100%; flex-wrap: wrap; gap: 10px; border-radius: 0 0 8px 8px; }
         .pagination-info { display: flex; align-items: center; gap: 12px; font-size: 12px; color: #6c757d; flex-wrap: wrap; }
@@ -1692,6 +1697,8 @@ window.verDetalhesEmpenho = function(numEmpenho, codUnidade) {
     if (item.numero_processo_compra_siad) {
         empenhosRelacionados = dadosConsolidados.filter(d => {
             if (d.numero_processo_compra_siad !== item.numero_processo_compra_siad) return false;
+            // Filtrar pelo mesmo credor
+            if (item.razao_social_credor && d.razao_social_credor && item.razao_social_credor !== d.razao_social_credor) return false;
             // Se o empenho atual tem contrato vinculado, filtrar também pelo contrato
             if (item._lic_numero_contrato && d._lic_numero_contrato && item._lic_numero_contrato !== d._lic_numero_contrato) return false;
             return true;
@@ -1715,6 +1722,7 @@ window.verDetalhesEmpenho = function(numEmpenho, codUnidade) {
             const pagsDoEmpenho = dadosPagamentos.filter(p => {
                 if (String(p['numero_empenho']||'').trim() !== String(e.numero_empenho)) return false;
                 if (String(p['unidade_orcamentaria_codigo']||'').trim() !== String(e.unidade_orcamentaria_codigo)) return false;
+                if (e.razao_social_credor && p['razao_social_credor'] && p['razao_social_credor'] !== e.razao_social_credor) return false;
                 if (e.numero_processo_compra_siad && p['numero_processo_compra_siad'] && p['numero_processo_compra_siad'] !== e.numero_processo_compra_siad) return false;
                 if (e._lic_numero_contrato && p['_lic_numero_contrato'] && p['_lic_numero_contrato'] !== e._lic_numero_contrato) return false;
                 return true;
@@ -1808,6 +1816,33 @@ document.addEventListener('show.bs.modal', function(e) {
         if (tab) new bootstrap.Tab(tab).show();
     }
 });
+
+// ============================================================
+// FIX: Impede modal de rolar a página (scroll jump fix)
+// ============================================================
+(function() {
+    let _savedScrollY = 0;
+
+    document.addEventListener('show.bs.modal', function() {
+        _savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    });
+
+    document.addEventListener('shown.bs.modal', function(e) {
+        // Restaura a posição do scroll após o Bootstrap abrir o modal
+        window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+        // Remove o tabindex para evitar o scrollIntoView do foco
+        try { e.target.removeAttribute('tabindex'); } catch(_) {}
+        // Remove padding-right que o Bootstrap injeta no body
+        document.body.style.paddingRight = '';
+        document.body.style.overflow = 'hidden';
+    });
+
+    document.addEventListener('hidden.bs.modal', function() {
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+        window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+    });
+})();
 
 // ============================================================
 // 8. DOWNLOADS
@@ -2253,6 +2288,7 @@ window.verDetalhesItem = function(itemCod, codUnidade, processoCompra, numContra
         const pagsDoEmpenho = dadosPagamentos.filter(p => {
             if (String(p['numero_empenho']||'').trim() !== String(e.numero_empenho)) return false;
             if (String(p['unidade_orcamentaria_codigo']||'').trim() !== String(e.unidade_orcamentaria_codigo)) return false;
+            if (e.razao_social_credor && p['razao_social_credor'] && p['razao_social_credor'] !== e.razao_social_credor) return false;
             if (e.numero_processo_compra_siad && p['numero_processo_compra_siad'] && p['numero_processo_compra_siad'] !== e.numero_processo_compra_siad) return false;
             if (e._lic_numero_contrato && p['_lic_numero_contrato'] && p['_lic_numero_contrato'] !== e._lic_numero_contrato) return false;
             return true;
@@ -2340,7 +2376,7 @@ window.verDetalhesItem = function(itemCod, codUnidade, processoCompra, numContra
     }, 50);
 };
 
-// Reset item modal tabs on open
+// Reset item modal tabs on open — integrado no bloco unificado de scroll fix abaixo
 document.addEventListener('show.bs.modal', function(e) {
     if (e.target.id === 'itemDetailModal') {
         const tab = document.getElementById('item-modal-dados-tab');
