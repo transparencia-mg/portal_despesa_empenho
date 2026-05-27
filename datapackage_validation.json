@@ -1,6 +1,6 @@
 {
   "version": "4.16.6",
-  "time": 16.199,
+  "time": 16.579,
   "errors": [],
   "tasks": [
     {
@@ -89,13 +89,13 @@
         "scheme": "file",
         "title": "Empenho 2022",
         "stats": {
-          "hash": "feabc7a3786bf8c347f51a8b90bce99f",
-          "bytes": 13932066,
+          "hash": "216f5425f7d15002173fced310519e45",
+          "bytes": 13932149,
           "fields": 17,
           "rows": 50873
         }
       },
-      "time": 2.13,
+      "time": 2.204,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -209,13 +209,13 @@
         "scheme": "file",
         "title": "Empenho 2023",
         "stats": {
-          "hash": "f22d9cb78127876ef0a31c32235c9269",
-          "bytes": 13657311,
+          "hash": "36efcaa49c70fa45d9787d0cd3e225b8",
+          "bytes": 13657413,
           "fields": 17,
           "rows": 46067
         }
       },
-      "time": 1.981,
+      "time": 1.988,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -329,13 +329,13 @@
         "scheme": "file",
         "title": "Empenho 2024",
         "stats": {
-          "hash": "7c045b97455b2e6257c28da845718b96",
-          "bytes": 13664039,
+          "hash": "70645b39c2c60d18a519e235d8f3bdee",
+          "bytes": 13664177,
           "fields": 17,
           "rows": 46020
         }
       },
-      "time": 1.915,
+      "time": 1.996,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -449,13 +449,13 @@
         "scheme": "file",
         "title": "Empenho 2025",
         "stats": {
-          "hash": "b2207484aa780459490a4de778face08",
-          "bytes": 13433262,
+          "hash": "63bb49640a0142603f3977419bdb35b4",
+          "bytes": 13433340,
           "fields": 17,
           "rows": 45363
         }
       },
-      "time": 1.928,
+      "time": 1.96,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -569,13 +569,13 @@
         "scheme": "file",
         "title": "Empenho 2026",
         "stats": {
-          "hash": "152112c3039539623d9019276f87157d",
-          "bytes": 4855424,
+          "hash": "c67cd2f189f7d9fb2ed9a7b3e02a04c7",
+          "bytes": 5186429,
           "fields": 17,
-          "rows": 15912
+          "rows": 17047
         }
       },
-      "time": 0.694,
+      "time": 0.741,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -663,7 +663,7 @@
           "rows": 70
         }
       },
-      "time": 0.015,
+      "time": 0.016,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -751,7 +751,7 @@
           "rows": 72
         }
       },
-      "time": 0.015,
+      "time": 0.016,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -839,7 +839,7 @@
           "rows": 72
         }
       },
-      "time": 0.015,
+      "time": 0.016,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -1009,8 +1009,8 @@
         "scheme": "file",
         "title": "Despesa por Órgão 2026",
         "stats": {
-          "hash": "c06dcba27847831ea7171726a777de40",
-          "bytes": 9064,
+          "hash": "09316f39488fe77e7d66ef1fdea1d5c5",
+          "bytes": 9072,
           "fields": 9,
           "rows": 74
         }
@@ -1137,13 +1137,13 @@
         "scheme": "file",
         "title": "Pagamentos 2022",
         "stats": {
-          "hash": "629455fd50f67fd26b5e4dc310319345",
-          "bytes": 15309194,
+          "hash": "4d95e3ee51140853005d9fdf3e44592d",
+          "bytes": 15309277,
           "fields": 19,
           "rows": 50873
         }
       },
-      "time": 2.263,
+      "time": 2.282,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -1265,13 +1265,13 @@
         "scheme": "file",
         "title": "IPagamentos 2023",
         "stats": {
-          "hash": "29c0ff4c6341285bf8e3137e7b611468",
-          "bytes": 14899487,
+          "hash": "1d345820b055c4b2e4b37bbc1fb42a69",
+          "bytes": 14899589,
           "fields": 19,
           "rows": 46067
         }
       },
-      "time": 2.069,
+      "time": 2.089,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -1393,13 +1393,13 @@
         "scheme": "file",
         "title": "Pagamentos 2024",
         "stats": {
-          "hash": "fcb90838746c61ff2ba74ae6c407d89e",
-          "bytes": 15062265,
+          "hash": "361cb3ec27a6e38c07fc1f5285227746",
+          "bytes": 15062403,
           "fields": 19,
           "rows": 46020
         }
       },
-      "time": 2.088,
+      "time": 2.111,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -1527,7 +1527,7 @@
           "rows": 0
         }
       },
-      "time": 0.136,
+      "time": 0.141,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -40650,13 +40650,13 @@
         "scheme": "file",
         "title": "Pagamentos 2026",
         "stats": {
-          "hash": "43ea6130a001e5a74326c4036ebba150",
-          "bytes": 5533755,
+          "hash": "a4599ba3953f19d7a5506378ea91683f",
+          "bytes": 5921959,
           "fields": 19,
-          "rows": 15912
+          "rows": 17047
         }
       },
-      "time": 0.735,
+      "time": 0.793,
       "scope": [
         "hash-count-error",
         "byte-count-error",
