@@ -589,129 +589,210 @@ async function fetchCSVComFallback(baseV1, baseV2, ano) {
 // ============================================================
 // 3. CARREGAMENTO DE DADOS
 // ============================================================
+// Mapa global de licitações (compartilhado entre cargas)
+let _licitacoesMap = new Map();
+let _licitacoesMapNorm = new Map();
+let _orgaoMap = new Map();
+let _carregamentoBackground = false;
+
+function normalizarChave(s) { return String(s||'').toUpperCase().replace(/[\s\-\.\/]/g,''); }
+
+function consolidarEmpenho(emp) {
+    const proc = emp['numero_processo_compra_siad'] ? String(emp['numero_processo_compra_siad']).trim() : null;
+    const lic = proc ? (_licitacoesMap.get(proc) || _licitacoesMapNorm.get(normalizarChave(proc)) || null) : null;
+    const codUnid = emp['unidade_orcamentaria_codigo'] ? String(emp['unidade_orcamentaria_codigo']).trim() : '';
+    const nomeUnid = emp['unidade_orcamentaria_nome'] || _orgaoMap.get(codUnid) || '';
+    let anoVal = emp['ano_empenho'] ? formatarInteiro(emp['ano_empenho']) : '';
+    const anoNum = parseInt(anoVal);
+    if (!anoVal || isNaN(anoNum) || anoNum < 2000 || anoNum > 2100) anoVal = null;
+    return {
+        ano_empenho: anoVal,
+        unidade_orcamentaria_codigo: codUnid ? formatarInteiro(codUnid) : '',
+        unidade_orcamentaria_nome: nomeUnid,
+        numero_empenho: emp['numero_empenho'] ? formatarInteiro(emp['numero_empenho']) : '',
+        data_registro_doc_empenho: emp['data_registro_doc_empenho'] || '',
+        razao_social_credor: emp['razao_social_credor'] || 'Não informado',
+        cnpj_cpf_credor_formatado: emp['cnpj_cpf_credor_formatado'] || '',
+        licitacao_descricao_da_modalidade: emp['licitacao_descricao_da_modalidade'] || (lic ? lic['procedimento_contratacao_detalhamento_1'] : '') || '',
+        numero_processo_compra_siad: proc || '',
+        objeto_processo: lic ? (lic['objeto_processo'] || '') : '',
+        elemento_despesa_codigo: emp['elemento_despesa_codigo'] ? formatarInteiro(emp['elemento_despesa_codigo']) : '',
+        elemento_despesa_descricao: emp['elemento_despesa_descricao'] || '',
+        item_despesa_codigo: emp['item_despesa_codigo'] || '',
+        item_despesa_descricao: emp['item_despesa_descricao'] || '',
+        valor_despesa_empenhada: parsearValorMonetario(emp['valor_despesa_empenhada']),
+        valor_despesa_liquidada: parsearValorMonetario(emp['valor_despesa_liquidada']),
+        valor_pago_financeiro: parsearValorMonetario(emp['valor_pago_financeiro']),
+        valor_pago_processado: parsearValorMonetario(emp['valor_pago_processado']),
+        valor_pago_nao_processado: parsearValorMonetario(emp['valor_pago_nao_processado']),
+        valor_pago_rp: parsearValorMonetario(emp['valor_pago_rp']),
+        _lic_ano_criacao_pedido: lic ? (lic['ano_criacao_pedido'] || '') : '',
+        _lic_procedimento_grupo: lic ? (lic['procedimento_contratacao_grupo'] || '') : '',
+        _lic_procedimento_det1: lic ? (lic['procedimento_contratacao_detalhamento_1'] || '') : '',
+        _lic_procedimento_esp: lic ? (lic['procedimento_contratacao_especializacao'] || '') : '',
+        _lic_codigo_orgao: lic ? (lic['codigo_orgao_entidade_compra'] || '') : '',
+        _lic_nome_orgao: lic ? (lic['nome_orgao_entidade_compra'] || '') : '',
+        _lic_data_criacao_pedido: lic ? (lic['data_criacao_pedido'] || '') : '',
+        _lic_data_licitacao: lic ? (lic['data_licitacao'] || '') : '',
+        _lic_numero_contrato: lic ? (lic['numero_contrato'] || '') : '',
+        _lic_indicador_termo_contrato: lic ? (lic['indicador_termo_de_contrato'] || '') : '',
+        _lic_situacao_processo: lic ? (lic['situacao_processo'] || '') : '',
+        _lic_criterio_julgamento: lic ? (lic['criterio_julgamento'] || '') : '',
+        _lic_nome_fornecedor: lic ? (lic['nome_empresarial_nome_fornecedor'] || '') : '',
+        _lic_cnpj_fornecedor: lic ? (lic['cnpj_cpf_fornecedor_formatado'] || '') : '',
+        _lic_edital_url: lic ? (lic['edital_retificacao_arquivos'] || '') : '',
+        _lic_contrato_url: lic ? (lic['contrato_termoaditivo_arquivos'] || '') : '',
+        _lic_valor_referencia: parsearValorMonetario(lic ? lic['valor_total_referencia_item_processo'] : null),
+        _lic_valor_homologado: parsearValorMonetario(lic ? lic['valor_total_homologado'] : null),
+        _lic_valor_atualizado: parsearValorMonetario(lic ? lic['valor_total_atualizado'] : null),
+    };
+}
+
+async function carregarAno(ano) {
+    const resultados = { empenhos: [], licitacoes: [], orgaos: [], pagamentos: [] };
+    try {
+        const resp = await fetchCSVComFallback(URL_EMPENHO_BASE_V1, URL_EMPENHO_BASE_V2, ano);
+        if (resp) {
+            const texto = await resp.text();
+            const dados = parseCSV(texto);
+            dados.forEach(d => { if (!d['ano_empenho'] || d['ano_empenho'] === 'NULL') d['ano_empenho'] = String(ano); });
+            resultados.empenhos = dados;
+        }
+    } catch(e) { console.error(`Erro empenho ${ano}:`, e); }
+    try {
+        const resp2 = await fetch(`${URL_LICITACOES_BASE}${ano}.csv`);
+        if (resp2.ok) { const t2 = await resp2.text(); resultados.licitacoes = parseCSV(t2); }
+    } catch(e) {}
+    try {
+        const resp3 = await fetchCSVComFallback(URL_ORGAO_BASE_V1, URL_ORGAO_BASE_V2, ano);
+        if (resp3) {
+            const t3 = await resp3.text();
+            resultados.orgaos = parseCSV(t3);
+        }
+    } catch(e) {}
+    try {
+        const resp4 = await fetch(`${URL_PAGAMENTO_BASE}${ano}.csv`);
+        if (resp4.ok) { const t4 = await resp4.text(); resultados.pagamentos = parseCSV(t4); }
+    } catch(e) {}
+    return resultados;
+}
+
+function integrarDadosAno(dados, ano) {
+    // Atualiza licitações
+    dados.licitacoes.forEach(l => {
+        if (l && l['numero_processo_formatado']) {
+            const chave = String(l['numero_processo_formatado']).trim();
+            _licitacoesMap.set(chave, l);
+            _licitacoesMapNorm.set(normalizarChave(chave), l);
+        }
+    });
+    // Atualiza orgãos
+    dados.orgaos.forEach(o => {
+        const cod = o['unidade_orcamentaria_codigo'] || o['codigo'] || '';
+        const nome = o['unidade_orcamentaria_nome'] || o['nome'] || '';
+        if (cod && nome) _orgaoMap.set(String(cod).trim(), nome);
+        const anoEx = o['ano_de_exercicio'] || String(ano);
+        dadosOrgaoRaw.push({ ...o, _ano_exercicio: String(anoEx) });
+    });
+    // Atualiza pagamentos
+    dadosPagamentos = [...dadosPagamentos, ...dados.pagamentos];
+    // Adiciona empenhos consolidados
+    dadosEmpenho = [...dadosEmpenho, ...dados.empenhos];
+    const novosConsolidados = dados.empenhos
+        .map(e => consolidarEmpenho(e))
+        .filter(d => d.ano_empenho && d.ano_empenho !== '0');
+    dadosConsolidados = [...dadosConsolidados, ...novosConsolidados];
+    dadosFiltradosConsulta = [...dadosConsolidados];
+}
+
+function mostrarBannerCarregando(anosRestantes) {
+    let banner = document.getElementById('banner-carregamento-bg');
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'banner-carregamento-bg';
+        banner.style.cssText = `
+            position: fixed; bottom: 18px; right: 18px; z-index: 8888;
+            background: #1a3a5c; color: white; border-radius: 10px;
+            padding: 10px 18px; font-size: 12px; font-family: Montserrat, sans-serif;
+            display: flex; align-items: center; gap: 10px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.22); min-width: 260px;
+        `;
+        document.body.appendChild(banner);
+    }
+    if (anosRestantes && anosRestantes.length > 0) {
+        banner.innerHTML = `
+            <span style="display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:50%;animation:spin-bg 0.8s linear infinite;flex-shrink:0;"></span>
+            <span>Carregando anos anteriores: <strong>${anosRestantes.join(', ')}</strong></span>
+        `;
+        banner.style.display = 'flex';
+        if (!document.getElementById('spin-bg-style')) {
+            const st = document.createElement('style');
+            st.id = 'spin-bg-style';
+            st.textContent = '@keyframes spin-bg { to { transform: rotate(360deg); } }';
+            document.head.appendChild(st);
+        }
+    } else {
+        banner.innerHTML = `<span style="color:#4ade80;font-size:16px;">✓</span> <span>Todos os anos carregados!</span>`;
+        setTimeout(() => { if (banner.parentNode) banner.parentNode.removeChild(banner); }, 2500);
+    }
+}
+
 async function carregarDados() {
-    mostrarLoading(true, 'Carregando dados de empenho...');
+    mostrarLoading(true, 'Carregando dados de 2026...');
     try {
         dadosEmpenho = [];
+        dadosPagamentos = [];
         dadosLicitacoes = [];
-        const orgaoMap = new Map();
+        dadosOrgaoRaw = [];
+        dadosConsolidados = [];
+        _licitacoesMap = new Map();
+        _licitacoesMapNorm = new Map();
+        _orgaoMap = new Map();
 
-        for (const ano of ANOS_DISPONIVEIS) {
-            mostrarLoading(true, `Carregando empenhos ${ano}...`);
-            try {
-                const resp = await fetchCSVComFallback(URL_EMPENHO_BASE_V1, URL_EMPENHO_BASE_V2, ano);
-                if (resp) {
-                    const texto = await resp.text();
-                    const dados = parseCSV(texto);
-                    dados.forEach(d => { if (!d['ano_empenho'] || d['ano_empenho'] === 'NULL') d['ano_empenho'] = String(ano); });
-                    dadosEmpenho = [...dadosEmpenho, ...dados];
-                }
-            } catch(e) { console.error(`Erro empenho ${ano}:`, e); }
+        // ── ETAPA 1: Carregar 2026 (ano mais atual) e exibir dashboard imediatamente ──
+        const ANO_PRINCIPAL = 2026;
+        const ANOS_BACKGROUND = ANOS_DISPONIVEIS.filter(a => a !== ANO_PRINCIPAL).sort((a,b) => b-a);
 
-            mostrarLoading(true, `Carregando licitações ${ano}...`);
-            try {
-                const resp2 = await fetch(`${URL_LICITACOES_BASE}${ano}.csv`);
-                if (resp2.ok) { const t2 = await resp2.text(); dadosLicitacoes = [...dadosLicitacoes, ...parseCSV(t2)]; }
-            } catch(e) {}
+        const dadosPrincipal = await carregarAno(ANO_PRINCIPAL);
+        integrarDadosAno(dadosPrincipal, ANO_PRINCIPAL);
 
-            mostrarLoading(true, `Carregando órgãos ${ano}...`);
-            try {
-                const resp3 = await fetchCSVComFallback(URL_ORGAO_BASE_V1, URL_ORGAO_BASE_V2, ano);
-                if (resp3) {
-                    const t3 = await resp3.text();
-                    const orgaoData = parseCSV(t3);
-                    orgaoData.forEach(o => {
-                        const cod = o['unidade_orcamentaria_codigo'] || o['codigo'] || '';
-                        const nome = o['unidade_orcamentaria_nome'] || o['nome'] || '';
-                        if (cod && nome) orgaoMap.set(String(cod).trim(), nome);
-                    });
-                    // Guardar raw para Visão Geral com ano de exercício
-                    orgaoData.forEach(o => {
-                        const anoEx = o['ano_de_exercicio'] || String(ano);
-                        dadosOrgaoRaw.push({ ...o, _ano_exercicio: String(anoEx) });
-                    });
-                }
-            } catch(e) {}
-
-            mostrarLoading(true, `Carregando pagamentos ${ano}...`);
-            try {
-                const resp4 = await fetch(`${URL_PAGAMENTO_BASE}${ano}.csv`);
-                if (resp4.ok) { const t4 = await resp4.text(); dadosPagamentos = [...dadosPagamentos, ...parseCSV(t4)]; }
-            } catch(e) {}
-        }
-
-        const licitacoesMap = new Map();
-        const licitacoesMapNorm = new Map();
-        function normalizarChave(s) { return String(s||'').toUpperCase().replace(/[\s\-\.\/]/g,''); }
-        dadosLicitacoes.forEach(l => {
-            if (l && l['numero_processo_formatado']) {
-                const chave = String(l['numero_processo_formatado']).trim();
-                licitacoesMap.set(chave, l);
-                licitacoesMapNorm.set(normalizarChave(chave), l);
-            }
-        });
-
-        dadosConsolidados = dadosEmpenho.map(emp => {
-            const proc = emp['numero_processo_compra_siad'] ? String(emp['numero_processo_compra_siad']).trim() : null;
-            const lic = proc ? (licitacoesMap.get(proc) || licitacoesMapNorm.get(normalizarChave(proc)) || null) : null;
-            const codUnid = emp['unidade_orcamentaria_codigo'] ? String(emp['unidade_orcamentaria_codigo']).trim() : '';
-            const nomeUnid = emp['unidade_orcamentaria_nome'] || orgaoMap.get(codUnid) || '';
-            let anoVal = emp['ano_empenho'] ? formatarInteiro(emp['ano_empenho']) : '';
-            const anoNum = parseInt(anoVal);
-            if (!anoVal || isNaN(anoNum) || anoNum < 2000 || anoNum > 2100) anoVal = null;
-            return {
-                ano_empenho: anoVal,
-                unidade_orcamentaria_codigo: codUnid ? formatarInteiro(codUnid) : '',
-                unidade_orcamentaria_nome: nomeUnid,
-                numero_empenho: emp['numero_empenho'] ? formatarInteiro(emp['numero_empenho']) : '',
-                data_registro_doc_empenho: emp['data_registro_doc_empenho'] || '',
-                razao_social_credor: emp['razao_social_credor'] || 'Não informado',
-                cnpj_cpf_credor_formatado: emp['cnpj_cpf_credor_formatado'] || '',
-                licitacao_descricao_da_modalidade: emp['licitacao_descricao_da_modalidade'] || (lic ? lic['procedimento_contratacao_detalhamento_1'] : '') || '',
-                numero_processo_compra_siad: proc || '',
-                objeto_processo: lic ? (lic['objeto_processo'] || '') : '',
-                elemento_despesa_codigo: emp['elemento_despesa_codigo'] ? formatarInteiro(emp['elemento_despesa_codigo']) : '',
-                elemento_despesa_descricao: emp['elemento_despesa_descricao'] || '',
-                item_despesa_codigo: emp['item_despesa_codigo'] || '',
-                item_despesa_descricao: emp['item_despesa_descricao'] || '',
-                valor_despesa_empenhada: parsearValorMonetario(emp['valor_despesa_empenhada']),
-                valor_despesa_liquidada: parsearValorMonetario(emp['valor_despesa_liquidada']),
-                valor_pago_financeiro: parsearValorMonetario(emp['valor_pago_financeiro']),
-                valor_pago_processado: parsearValorMonetario(emp['valor_pago_processado']),
-                valor_pago_nao_processado: parsearValorMonetario(emp['valor_pago_nao_processado']),
-                valor_pago_rp: parsearValorMonetario(emp['valor_pago_rp']),
-                _lic_ano_criacao_pedido: lic ? (lic['ano_criacao_pedido'] || '') : '',
-                _lic_procedimento_grupo: lic ? (lic['procedimento_contratacao_grupo'] || '') : '',
-                _lic_procedimento_det1: lic ? (lic['procedimento_contratacao_detalhamento_1'] || '') : '',
-                _lic_procedimento_esp: lic ? (lic['procedimento_contratacao_especializacao'] || '') : '',
-                _lic_codigo_orgao: lic ? (lic['codigo_orgao_entidade_compra'] || '') : '',
-                _lic_nome_orgao: lic ? (lic['nome_orgao_entidade_compra'] || '') : '',
-                _lic_data_criacao_pedido: lic ? (lic['data_criacao_pedido'] || '') : '',
-                _lic_data_licitacao: lic ? (lic['data_licitacao'] || '') : '',
-                _lic_numero_contrato: lic ? (lic['numero_contrato'] || '') : '',
-                _lic_indicador_termo_contrato: lic ? (lic['indicador_termo_de_contrato'] || '') : '',
-                _lic_situacao_processo: lic ? (lic['situacao_processo'] || '') : '',
-                _lic_criterio_julgamento: lic ? (lic['criterio_julgamento'] || '') : '',
-                _lic_nome_fornecedor: lic ? (lic['nome_empresarial_nome_fornecedor'] || '') : '',
-                _lic_cnpj_fornecedor: lic ? (lic['cnpj_cpf_fornecedor_formatado'] || '') : '',
-                _lic_edital_url: lic ? (lic['edital_retificacao_arquivos'] || '') : '',
-                _lic_contrato_url: lic ? (lic['contrato_termoaditivo_arquivos'] || '') : '',
-                _lic_valor_referencia: parsearValorMonetario(lic ? lic['valor_total_referencia_item_processo'] : null),
-                _lic_valor_homologado: parsearValorMonetario(lic ? lic['valor_total_homologado'] : null),
-                _lic_valor_atualizado: parsearValorMonetario(lic ? lic['valor_total_atualizado'] : null),
-            };
-        });
-
-        dadosConsolidados = dadosConsolidados.filter(d => d.ano_empenho && d.ano_empenho !== '0');
-        dadosFiltradosConsulta = [...dadosConsolidados];
-
+        // Renderiza o dashboard com dados de 2026
         renderizarVisaoGeral();
         renderizarConsultaEmpenho();
         renderizarConsultaItem();
         renderizarDownloads();
         renderizarDicionario();
         carregarDataAtualizacao();
+        mostrarLoading(false);
         setTimeout(iframeUpdateHeight, 500);
+
+        mostrarToast('Dados de 2026 carregados! Carregando anos anteriores...', 'success');
+
+        // ── ETAPA 2: Carregar anos anteriores em background, um por vez ──
+        if (ANOS_BACKGROUND.length > 0) {
+            mostrarBannerCarregando(ANOS_BACKGROUND);
+            _carregamentoBackground = true;
+            const anosRestantes = [...ANOS_BACKGROUND];
+            for (const ano of ANOS_BACKGROUND) {
+                try {
+                    const dados = await carregarAno(ano);
+                    integrarDadosAno(dados, ano);
+                    anosRestantes.splice(anosRestantes.indexOf(ano), 1);
+                    mostrarBannerCarregando([...anosRestantes]);
+                    // Atualiza o dashboard com os novos dados sem bloquear a UI
+                    renderizarVisaoGeral();
+                    renderizarConsultaEmpenho();
+                    renderizarConsultaItem();
+                    setTimeout(iframeUpdateHeight, 300);
+                } catch(e) {
+                    console.error(`Erro carregando ano ${ano} em background:`, e);
+                    anosRestantes.splice(anosRestantes.indexOf(ano), 1);
+                    mostrarBannerCarregando([...anosRestantes]);
+                }
+            }
+            _carregamentoBackground = false;
+            mostrarToast('Todos os dados carregados com sucesso!', 'success');
+        }
 
     } catch(erro) {
         console.error('Erro fatal:', erro);
