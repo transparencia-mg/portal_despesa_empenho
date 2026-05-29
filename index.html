@@ -126,6 +126,9 @@
         .modal { overflow-y: auto !important; }
         .modal-open { overflow: hidden !important; padding-right: 0 !important; }
         body.modal-open { position: static !important; overflow: hidden !important; }
+        /* Fix iframe: impede scroll automático ao abrir modal */
+        .modal.show { position: fixed !important; top: 0 !important; left: 0 !important; }
+        .modal-dialog { margin: 1.75rem auto !important; }
 
         /* Paginação */
         .pagination-container { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: white; border-top: 1px solid #dee2e6; width: 100%; flex-wrap: wrap; gap: 10px; border-radius: 0 0 8px 8px; }
@@ -403,7 +406,7 @@ let colunasVisiveisConsulta = {
     numero_processo_compra_siad: true,
     _lic_numero_contrato: true,
     objeto_processo: true,
-    elemento_despesa_codigo: true,
+    elemento_despesa_codigo: false,
     elemento_despesa_descricao: true,
     valor_despesa_empenhada: true,
     valor_despesa_liquidada: true
@@ -513,6 +516,7 @@ function voltarAoTopo() {
 }
 
 function iframeUpdateHeight() {
+    if (window._modalIsOpen) return; // Não reporta altura com modal aberto
     const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) + 10;
     try { if (window.parent && window.parent !== window) window.parent.postMessage({ iframeHeight: h, height: h, type: 'resize' }, '*'); } catch(e) {}
 }
@@ -886,7 +890,7 @@ function renderizarVisaoGeral() {
                 <datalist id="vgSiglaList">${siglas.map(s=>`<option value="${s}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:3;min-width:200px;">
-                <label class="filter-label">Órgão (Código e Nome)</label>
+                <label class="filter-label">Órgão</label>
                 <input type="text" class="form-control" id="vgFiltroUnidade" list="vgUnidadeList" placeholder="Digite ou selecione...">
                 <datalist id="vgUnidadeList">${unidades.map(u=>`<option value="${u}">`).join('')}</datalist>
             </div>
@@ -921,7 +925,7 @@ function renderizarVisaoGeral() {
             <table class="table" id="vgTable">
                 <thead><tr>
                     <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_sigla')">Sigla <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_codigo_nome')">Órgão (Código e Nome) <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_codigo_nome')">Órgão<i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortVG('valor_despesa_empenhada')">Valor Empenhado <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortVG('valor_despesa_liquidada')">Valor Liquidado <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_financeiro')">Valor Pago <i class="material-icons">unfold_more</i></th>
@@ -1054,15 +1058,31 @@ window.buscarVG = function(termo) {
     const badge=document.getElementById('vgBadge'); if(badge) badge.textContent=`${window._vgUnidadesOrdenadas.length} unidades`;
     atualizarTabelaVG();
 };
+let _pendingConsultaFiltro = null; // { unidade, ano } — sobrevive a re-renders do tab
+
 window.irParaConsultaEmpenho = function(unidade, ano) {
+    const anoFiltro = ano || document.getElementById('vgFiltroAno')?.value || '';
+    // Salva o filtro pendente para ser aplicado mesmo após re-render do tab
+    _pendingConsultaFiltro = { unidade: unidade, ano: anoFiltro };
+
+    // Navega para a aba
     document.getElementById('consulta-empenho-tab').click();
-    setTimeout(() => {
-        const elAno = document.getElementById('consFiltroAno');
+
+    // Tenta preencher em loop caso o DOM ainda não esteja pronto
+    const tentarPreencher = (tentativas) => {
+        const elAno  = document.getElementById('consFiltroAno');
         const elUnid = document.getElementById('consFiltroUnidade');
-        if (elAno) elAno.value = ano || document.getElementById('vgFiltroAno')?.value || '';
-        if (elUnid) elUnid.value = unidade;
+        if (!elAno || !elUnid) {
+            if (tentativas > 0) setTimeout(() => tentarPreencher(tentativas - 1), 150);
+            return;
+        }
+        if (anoFiltro) elAno.value = anoFiltro;
+        elUnid.value = unidade;
         aplicarFiltrosConsultaInterno();
-    }, 300);
+        _pendingConsultaFiltro = null;
+        setTimeout(iframeUpdateHeight, 400);
+    };
+    setTimeout(() => tentarPreencher(8), 350);
 };
 
 function renderizarPaginacaoVG() {
@@ -1093,16 +1113,18 @@ function renderizarConsultaEmpenho() {
     if (!container) return;
 
     const anos = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
-    const siglas = [...new Set(dadosConsolidados.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort();
-    const unidades = [...new Set(dadosConsolidados.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort();
-    const credores = [...new Set(dadosConsolidados.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort();
-    const modalidades = [...new Set(dadosConsolidados.map(d=>d.licitacao_descricao_da_modalidade))].filter(Boolean).sort();
-    const elementos = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
-    const descsElem = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort();
-    const itens = [...new Set(dadosConsolidados.map(d=>d.item_despesa_codigo))].filter(Boolean).sort();
-    const descsItem = [...new Set(dadosConsolidados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort();
-    const contratos = [...new Set(dadosConsolidados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort();
-    const processos = [...new Set(dadosConsolidados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort();
+    const _anoInicial = anos[0] || '2026';
+    const _dadosAnoIni = dadosConsolidados.filter(d => d.ano_empenho == _anoInicial);
+    const siglas = [...new Set(_dadosAnoIni.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort();
+    const unidades = [...new Set(_dadosAnoIni.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort();
+    const credores = [...new Set(_dadosAnoIni.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort();
+    const modalidades = [...new Set(_dadosAnoIni.map(d=>d.licitacao_descricao_da_modalidade))].filter(Boolean).sort();
+    const elementos = [...new Set(_dadosAnoIni.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
+    const descsElem = [...new Set(_dadosAnoIni.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort();
+    const itens = [...new Set(_dadosAnoIni.map(d=>d.item_despesa_codigo))].filter(Boolean).sort();
+    const descsItem = [...new Set(_dadosAnoIni.map(d=>d.item_despesa_descricao))].filter(Boolean).sort();
+    const contratos = [...new Set(_dadosAnoIni.map(d=>d._lic_numero_contrato))].filter(Boolean).sort();
+    const processos = [...new Set(_dadosAnoIni.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort();
 
     container.innerHTML = `
     <div class="filter-container">
@@ -1110,7 +1132,7 @@ function renderizarConsultaEmpenho() {
         <div class="filters-row">
             <div class="filter-group" style="flex:0 0 auto;min-width:100px;">
                 <label class="filter-label">Ano</label>
-                <select class="form-select modern-select" id="consFiltroAno">
+                <select class="form-select modern-select" id="consFiltroAno" onchange="atualizarDatalistsConsulta(this.value)">
                     <option value="">Todos</option>
                     ${anos.map((a,i)=>`<option value="${a}" ${i===0?'selected':''}>${a}</option>`).join('')}
                 </select>
@@ -1121,7 +1143,7 @@ function renderizarConsultaEmpenho() {
                 <datalist id="consListSigla">${siglas.map(s=>`<option value="${s}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:3;min-width:200px;">
-                <label class="filter-label">Órgão (Código e Nome)</label>
+                <label class="filter-label">Órgão</label>
                 <input type="text" class="form-control" id="consFiltroUnidade" list="consListUnidade" placeholder="Digite ou selecione...">
                 <datalist id="consListUnidade">${unidades.map(u=>`<option value="${u}">`).join('')}</datalist>
             </div>
@@ -1150,8 +1172,8 @@ function renderizarConsultaEmpenho() {
                 <datalist id="consListModalidade">${modalidades.map(m=>`<option value="${m}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:2;min-width:160px;">
-                <label class="filter-label">Nº Processo Compra</label>
-                <input type="text" class="form-control" id="consFiltroProcesso" list="consListProcesso" placeholder="Ex: 1234 56/2024">
+                <label class="filter-label">Processo Compra</label>
+                <input type="text" class="form-control" id="consFiltroProcesso" list="consListProcesso" placeholder="Nº Processo Compra...">
                 <datalist id="consListProcesso">${processos.slice(0,200).map(p=>`<option value="${p}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:2;min-width:150px;">
@@ -1166,12 +1188,12 @@ function renderizarConsultaEmpenho() {
         </div>
         <!-- Linha 4: Cód. Elemento, Elemento, Cód. Item, Item -->
         <div class="filters-row">
-            <div class="filter-group" style="flex:1;min-width:120px;">
-                <label class="filter-label">Cód. Elemento Despesa</label>
+            <div class="filter-group" style="flex:1;min-width:200px;">
+                <label class="filter-label" style="white-space:nowrap;">Cód. Elemento Despesa</label>
                 <input type="text" class="form-control" id="consFiltroElemento" list="consListElemento" placeholder="Código...">
                 <datalist id="consListElemento">${elementos.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
-            <div class="filter-group" style="flex:2;min-width:180px;">
+            <div class="filter-group" style="flex:2;min-width:150px;">
                 <label class="filter-label">Elemento Despesa</label>
                 <input type="text" class="form-control" id="consFiltroDescElemento" list="consListDescElemento" placeholder="Palavra-chave...">
                 <datalist id="consListDescElemento">${descsElem.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
@@ -1181,7 +1203,7 @@ function renderizarConsultaEmpenho() {
                 <input type="text" class="form-control" id="consFiltroItemCod" list="consListItemCod" placeholder="Código...">
                 <datalist id="consListItemCod">${itens.slice(0,300).map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
-            <div class="filter-group" style="flex:2;min-width:180px;">
+            <div class="filter-group" style="flex:2;min-width:150px;">
                 <label class="filter-label">Item Despesa</label>
                 <input type="text" class="form-control" id="consFiltroItemDesc" list="consListItemDesc" placeholder="Palavra-chave...">
                 <datalist id="consListItemDesc">${descsItem.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
@@ -1228,6 +1250,19 @@ function renderizarConsultaEmpenho() {
     paginacaoConsulta.atual = 1;
     paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
     atualizarTabelaConsulta();
+
+    // Se havia um filtro pendente (ex: clique em órgão da Visão Geral), reaplicar
+    if (_pendingConsultaFiltro) {
+        const pf = _pendingConsultaFiltro;
+        _pendingConsultaFiltro = null;
+        setTimeout(() => {
+            const elAno  = document.getElementById('consFiltroAno');
+            const elUnid = document.getElementById('consFiltroUnidade');
+            if (elAno && pf.ano) elAno.value = pf.ano;
+            if (elUnid) elUnid.value = pf.unidade;
+            aplicarFiltrosConsultaInterno();
+        }, 50);
+    }
 }
 
 function montarCabecalhoConsulta() {
@@ -1250,7 +1285,7 @@ function gerarLinkProcessoCompra(item) {
     const edital = item._lic_edital_url || '';
     const urlFinal = url || edital || '';
     if (urlFinal) {
-        return `<a href="${urlFinal}" target="_blank" class="compra-link" title="Acessar processo de compra">${proc} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`;
+        return `<a href="${urlFinal}" target="_blank" class="compra-link" title="Acessar processo de compra">${proc}</a>`;
     }
     return proc;
 }
@@ -1275,7 +1310,7 @@ function atualizarTabelaConsulta() {
             } else if (col === '_lic_numero_contrato') {
                 const contrato = valor||'';
                 const contratoUrl = item._lic_contrato_url||'';
-                row += `<td>${contrato&&contratoUrl?`<a href="${contratoUrl}" target="_blank" class="compra-link">${contrato} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(contrato||'-')}</td>`;
+                row += `<td>${contrato&&contratoUrl?`<a href="${contratoUrl}" target="_blank" class="compra-link">${contrato}</a>`:(contrato||'-')}</td>`;
             } else if (col === 'objeto_processo') {
                 const obj = valor||'';
                 row += `<td title="${obj}">${obj.length>60?obj.substring(0,60)+'...':(obj||'-')}</td>`;
@@ -1392,7 +1427,7 @@ window.buscarConsulta = function(termo) {
             let valor=item[col];
             if (col==='numero_empenho') row+=`<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_codigo_nome||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
             else if (col==='numero_processo_compra_siad') row+=`<td>${gerarLinkProcessoCompra(item)}</td>`;
-            else if (col==='_lic_numero_contrato') { const c=valor||'',u=item._lic_contrato_url||''; row+=`<td>${c&&u?`<a href="${u}" target="_blank" class="compra-link">${c} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(c||'-')}</td>`; }
+            else if (col==='_lic_numero_contrato') { const c=valor||'',u=item._lic_contrato_url||''; row+=`<td>${c&&u?`<a href="${u}" target="_blank" class="compra-link">${c}</a>`:(c||'-')}</td>`; }
             else if (col==='objeto_processo') { const o=valor||''; row+=`<td title="${o}">${o.length>60?o.substring(0,60)+'...':(o||'-')}</td>`; }
             else if (col==='data_registro_doc_empenho') row+=`<td>${formatarData(valor)}</td>`;
             else if (campos$.includes(col)) row+=`<td class="text-right">${formatarMoeda(valor)}</td>`;
@@ -1434,14 +1469,16 @@ function renderizarConsultaItem() {
     if (!container) return;
 
     const anos = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
-    const siglas = [...new Set(dadosConsolidados.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort();
-    const unidades = [...new Set(dadosConsolidados.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort();
-    const itens = [...new Set(dadosConsolidados.map(d=>d.item_despesa_codigo))].filter(Boolean).sort();
-    const descsItem = [...new Set(dadosConsolidados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort();
-    const elementos = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
-    const processos = [...new Set(dadosConsolidados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort();
-    const contratos = [...new Set(dadosConsolidados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort();
-    const descsElem = [...new Set(dadosConsolidados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort();
+    const _anoInicialItem = anos[0] || '2026';
+    const _dadosAnoIniItem = dadosConsolidados.filter(d => d.ano_empenho == _anoInicialItem);
+    const siglas = [...new Set(_dadosAnoIniItem.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort();
+    const unidades = [...new Set(_dadosAnoIniItem.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort();
+    const itens = [...new Set(_dadosAnoIniItem.map(d=>d.item_despesa_codigo))].filter(Boolean).sort();
+    const descsItem = [...new Set(_dadosAnoIniItem.map(d=>d.item_despesa_descricao))].filter(Boolean).sort();
+    const elementos = [...new Set(_dadosAnoIniItem.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
+    const processos = [...new Set(_dadosAnoIniItem.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort();
+    const contratos = [...new Set(_dadosAnoIniItem.map(d=>d._lic_numero_contrato))].filter(Boolean).sort();
+    const descsElem = [...new Set(_dadosAnoIniItem.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort();
 
     container.innerHTML = `
     <div class="filter-container">
@@ -1449,7 +1486,7 @@ function renderizarConsultaItem() {
         <div class="filters-row" style="flex-wrap:wrap;gap:10px;">
             <div class="filter-group" style="flex:0 0 auto;min-width:100px;">
                 <label class="filter-label">Ano</label>
-                <select class="form-select modern-select" id="itemFiltroAno">
+                <select class="form-select modern-select" id="itemFiltroAno" onchange="atualizarDatalistsItem(this.value)">
                     <option value="">Todos</option>
                     ${anos.map((a,i)=>`<option value="${a}" ${i===0?'selected':''}>${a}</option>`).join('')}
                 </select>
@@ -1460,31 +1497,31 @@ function renderizarConsultaItem() {
                 <datalist id="itemListSigla">${siglas.map(s=>`<option value="${s}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:3;min-width:200px;">
-                <label class="filter-label">Órgão (Código e Nome)</label>
+                <label class="filter-label">Órgão</label>
                 <input type="text" class="form-control" id="itemFiltroUnidade" list="itemListUnidade" placeholder="Digite ou selecione...">
                 <datalist id="itemListUnidade">${unidades.map(u=>`<option value="${u}">`).join('')}</datalist>
             </div>
         </div>
         <!-- Linha 2: Processo Compra, Contrato, Cód. Elemento, Elemento -->
         <div class="filters-row" style="flex-wrap:wrap;gap:10px;">
-            <div class="filter-group" style="flex:2;min-width:160px;">
+            <div class="filter-group" style="flex:1;min-width:140px;">
                 <label class="filter-label">Processo Compra</label>
-                <input type="text" class="form-control" id="itemFiltroProcesso" list="itemListProcesso" placeholder="Nº processo...">
+                <input type="text" class="form-control" id="itemFiltroProcesso" list="itemListProcesso" placeholder="Nº Processo Compra...">
                 <datalist id="itemListProcesso">${processos.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
-            <div class="filter-group" style="flex:2;min-width:150px;">
+            <div class="filter-group" style="flex:1;min-width:120px;">
                 <label class="filter-label">Contrato</label>
                 <input type="text" class="form-control" id="itemFiltroContrato" list="itemListContrato" placeholder="Nº contrato...">
                 <datalist id="itemListContrato">${contratos.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
-            <div class="filter-group" style="flex:1;min-width:120px;">
-                <label class="filter-label">Cód. Elemento Despesa</label>
+            <div class="filter-group" style="flex:1;min-width:200px;">
+                <label class="filter-label" style="white-space:nowrap;">Cód. Elemento Despesa</label>
                 <input type="text" class="form-control" id="itemFiltroElem" list="itemListElem" placeholder="Código...">
                 <datalist id="itemListElem">${elementos.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
-            <div class="filter-group" style="flex:3;min-width:180px;">
+            <div class="filter-group" style="flex:3;min-width:140px;">
                 <label class="filter-label">Elemento Despesa</label>
-                <input type="text" class="form-control" id="itemFiltroDescElem" list="itemListDescElem" placeholder="Descrição...">
+                <input type="text" class="form-control" id="itemFiltroDescElem" list="itemListDescElem" placeholder="Palavra-chave...">
                 <datalist id="itemListDescElem">${descsElem.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
         </div>
@@ -1524,15 +1561,15 @@ function renderizarConsultaItem() {
             <table class="table" id="itemTable">
                 <thead><tr>
                     <th class="text-center" style="width:40px;">Ações</th>
-                    <th class="sortable-header" onclick="toggleSortItem('ano_empenho')">Ano <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortItem('item_despesa_codigo')">Cód. Item Despesa <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortItem('item_despesa_descricao')">Item Despesa <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortItem('elemento_despesa_codigo')">Cód. Elemento Despesa <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortItem('elemento_despesa_descricao')">Elemento Despesa <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('ano_empenho')"> Ano <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('item_despesa_codigo')" style="min-width:120px;">Cód. Item<br>Despesa <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('item_despesa_descricao')" style="min-width:110px;">Item<br>Despesa <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('elemento_despesa_codigo')" style="min-width:140px;">Cód. Elem.<br>Despesa <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('elemento_despesa_descricao')" style="min-width:120px;">Elemento<br>Despesa <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('unidade_orcamentaria_sigla')">Sigla <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('unidade_orcamentaria_codigo_nome')">Órgão <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortItem('numero_processo_compra_siad')">Processo Compra <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortItem('_lic_numero_contrato')">Contrato <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('numero_processo_compra_siad')" style="white-space:nowrap;min-width:140px;">Processo Compra <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('_lic_numero_contrato')" style="white-space:nowrap;min-width:100px;">Contrato <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortItem('valor_despesa_empenhada')">Valor Empenhado <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortItem('valor_despesa_liquidada')">Valor Liquidado <i class="material-icons">unfold_more</i></th>
                 </tr></thead>
@@ -1633,8 +1670,8 @@ function atualizarTabelaItem() {
             <td>${item.elemento_despesa_descricao||'-'}</td>
             <td>${item.unidade_orcamentaria_sigla||'-'}</td>
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.unidade_orcamentaria_codigo_nome||''}">${item.unidade_orcamentaria_codigo_nome||'-'}</td>
-            <td>${proc&&procUrl?`<a href="${procUrl}" target="_blank" class="compra-link">${proc} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(proc||'-')}</td>
-            <td>${contrato&&contratoUrl?`<a href="${contratoUrl}" target="_blank" class="compra-link">${contrato} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(contrato||'-')}</td>
+            <td>${proc&&procUrl?`<a href="${procUrl}" target="_blank" class="compra-link">${proc}</a>`:(proc||'-')}</td>
+            <td>${contrato&&contratoUrl?`<a href="${contratoUrl}" target="_blank" class="compra-link">${contrato}</a>`:(contrato||'-')}</td>
             <td class="text-right" style="font-weight:600;color:#1a3a5c;">${formatarMoeda(item.valor_despesa_empenhada)}</td>
             <td class="text-right" style="color:#856404;">${formatarMoeda(item.valor_despesa_liquidada)}</td>
         </tr>`;
@@ -1686,8 +1723,8 @@ window.buscarItem=function(termo){
             <td>${item.ano_empenho||'-'}</td><td>${item.item_despesa_codigo||'-'}</td><td>${item.item_despesa_descricao||'-'}</td><td>${item.elemento_despesa_codigo||'-'}</td><td>${item.elemento_despesa_descricao||'-'}</td>
             <td>${item.unidade_orcamentaria_sigla||'-'}</td>
             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.unidade_orcamentaria_codigo_nome||'-'}</td>
-            <td>${proc&&procUrl?`<a href="${procUrl}" target="_blank" class="compra-link">${proc} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(proc||'-')}</td>
-            <td>${ct&&cu?`<a href="${cu}" target="_blank" class="compra-link">${ct} <i class="material-icons" style="font-size:11px">open_in_new</i></a>`:(ct||'-')}</td>
+            <td>${proc&&procUrl?`<a href="${procUrl}" target="_blank" class="compra-link">${proc}</a>`:(proc||'-')}</td>
+            <td>${ct&&cu?`<a href="${cu}" target="_blank" class="compra-link">${ct}</a>`:(ct||'-')}</td>
             <td class="text-right" style="font-weight:600;color:#1a3a5c;">${formatarMoeda(item.valor_despesa_empenhada)}</td><td class="text-right" style="color:#856404;">${formatarMoeda(item.valor_despesa_liquidada)}</td>
         </tr>`;
     }).join('');
@@ -1954,25 +1991,39 @@ document.addEventListener('show.bs.modal', function(e) {
 // ============================================================
 (function() {
     let _savedScrollY = 0;
+    let _modalOpen = false;
+
+    // Expõe flag para o iframeUpdateHeight saber que não deve reportar altura
+    window._modalIsOpen = false;
 
     document.addEventListener('show.bs.modal', function() {
         _savedScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+        _modalOpen = true;
+        window._modalIsOpen = true;
+        // Fixa a posição do body para evitar scroll durante abertura do modal
+        document.body.style.top = `-${_savedScrollY}px`;
     });
 
     document.addEventListener('shown.bs.modal', function(e) {
-        // Restaura a posição do scroll após o Bootstrap abrir o modal
-        window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
-        // Remove o tabindex para evitar o scrollIntoView do foco
+        // Remove tabindex para evitar scrollIntoView do foco
         try { e.target.removeAttribute('tabindex'); } catch(_) {}
         // Remove padding-right que o Bootstrap injeta no body
         document.body.style.paddingRight = '';
         document.body.style.overflow = 'hidden';
+        // Restaura scroll
+        document.body.style.top = '';
+        window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
     });
 
     document.addEventListener('hidden.bs.modal', function() {
+        _modalOpen = false;
+        window._modalIsOpen = false;
         document.body.style.overflow = '';
         document.body.style.paddingRight = '';
+        document.body.style.top = '';
         window.scrollTo({ top: _savedScrollY, behavior: 'instant' });
+        // Reporta altura após fechar o modal
+        setTimeout(iframeUpdateHeight, 100);
     });
 })();
 
@@ -2527,6 +2578,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 (function() {
     function sendHeight() {
+        // Não reporta altura enquanto modal estiver aberto (evita loop de resize)
+        if (window._modalIsOpen) return;
         const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight) + 10;
         try { if(window.parent&&window.parent!==window) window.parent.postMessage({iframeHeight:h,iframeResize:true,type:'resize'},'*'); } catch(e) {}
     }
@@ -2534,6 +2587,43 @@ document.addEventListener('DOMContentLoaded', () => {
     else { window.addEventListener('resize', sendHeight); setInterval(sendHeight, 2000); }
     sendHeight();
 })();
+
+// ============================================================
+// ATUALIZAÇÃO DINÂMICA DE DATALISTS POR ANO
+// ============================================================
+window.atualizarDatalistsConsulta = function(anoSel) {
+    const dados = anoSel ? dadosConsolidados.filter(d => d.ano_empenho == anoSel) : dadosConsolidados;
+    const upd = (id, vals) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = vals.map(v=>`<option value="${v}">`).join('');
+    };
+    upd('consListSigla', [...new Set(dados.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort());
+    upd('consListUnidade', [...new Set(dados.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort());
+    upd('consListCredor', [...new Set(dados.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort().slice(0,300));
+    upd('consListModalidade', [...new Set(dados.map(d=>d.licitacao_descricao_da_modalidade))].filter(Boolean).sort());
+    upd('consListProcesso', [...new Set(dados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort().slice(0,200));
+    upd('consListContrato', [...new Set(dados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort().slice(0,200));
+    upd('consListElemento', [...new Set(dados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort());
+    upd('consListDescElemento', [...new Set(dados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort().slice(0,200));
+    upd('consListItemCod', [...new Set(dados.map(d=>d.item_despesa_codigo))].filter(Boolean).sort().slice(0,300));
+    upd('consListItemDesc', [...new Set(dados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort().slice(0,200));
+};
+
+window.atualizarDatalistsItem = function(anoSel) {
+    const dados = anoSel ? dadosConsolidados.filter(d => d.ano_empenho == anoSel) : dadosConsolidados;
+    const upd = (id, vals) => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = vals.map(v=>`<option value="${v}">`).join('');
+    };
+    upd('itemListSigla', [...new Set(dados.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort());
+    upd('itemListUnidade', [...new Set(dados.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort());
+    upd('itemListCod', [...new Set(dados.map(d=>d.item_despesa_codigo))].filter(Boolean).sort());
+    upd('itemListDesc', [...new Set(dados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort().slice(0,300));
+    upd('itemListElem', [...new Set(dados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort());
+    upd('itemListDescElem', [...new Set(dados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort().slice(0,200));
+    upd('itemListProcesso', [...new Set(dados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort().slice(0,200));
+    upd('itemListContrato', [...new Set(dados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort().slice(0,200));
+};
 </script>
 </body>
 </html>
