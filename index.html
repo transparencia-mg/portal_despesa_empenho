@@ -1005,17 +1005,23 @@ function atualizarTabelaVG() {
     const inicio = (paginacaoVG.atual - 1) * paginacaoVG.porPagina;
     const pagina = window._vgUnidadesOrdenadas.slice(inicio, inicio + paginacaoVG.porPagina);
     const ano = document.getElementById('vgFiltroAno')?.value || '';
-    document.getElementById('vgTableBody').innerHTML = pagina.map(u => `
+    document.getElementById('vgTableBody').innerHTML = pagina.map((u, idx) => {
+        const unidNome = u.unidade_orcamentaria_codigo_nome || '';
+        // Usa data-attribute para evitar problemas com aspas/caracteres especiais no nome
+        window._vgLinkData = window._vgLinkData || {};
+        window._vgLinkData['r' + idx] = { unidade: unidNome, ano: ano };
+        return `
         <tr>
             <td>${u.unidade_orcamentaria_sigla||'-'}</td>
-            <td><a href="#" class="orgao-link" onclick="irParaConsultaEmpenho('${(u.unidade_orcamentaria_codigo_nome||'').replace(/'/g,"\\'")}\'','${ano}');return false;">${u.unidade_orcamentaria_codigo_nome||'-'}</a></td>
+            <td><a href="#" class="orgao-link" onclick="irParaConsultaEmpenho(window._vgLinkData['r${idx}'].unidade, window._vgLinkData['r${idx}'].ano);return false;">${unidNome||'-'}</a></td>
             <td class="text-right">${formatarMoeda(u.valor_despesa_empenhada)}</td>
             <td class="text-right">${formatarMoeda(u.valor_despesa_liquidada)}</td>
             <td class="text-right">${formatarMoeda(u.valor_pago_financeiro)}</td>
             <td class="text-right">${formatarMoeda(u.valor_pago_processado)}</td>
             <td class="text-right">${formatarMoeda(u.valor_pago_nao_processado)}</td>
             <td class="text-right">${formatarMoeda(u.valor_pago_rp)}</td>
-        </tr>`).join('');
+        </tr>`;
+    }).join('');
 
     const totais = window._vgUnidadesOrdenadas.reduce((acc,u) => {
         acc.emp+=u.valor_despesa_empenhada; acc.liq+=u.valor_despesa_liquidada;
@@ -1062,27 +1068,44 @@ let _pendingConsultaFiltro = null; // { unidade, ano } — sobrevive a re-render
 
 window.irParaConsultaEmpenho = function(unidade, ano) {
     const anoFiltro = ano || document.getElementById('vgFiltroAno')?.value || '';
-    // Salva o filtro pendente para ser aplicado mesmo após re-render do tab
+
+    // Salva como pendente (fallback caso o tab ainda não esteja renderizado)
     _pendingConsultaFiltro = { unidade: unidade, ano: anoFiltro };
 
-    // Navega para a aba
+    // Clica na aba para exibi-la
     document.getElementById('consulta-empenho-tab').click();
 
-    // Tenta preencher em loop caso o DOM ainda não esteja pronto
-    const tentarPreencher = (tentativas) => {
+    // Função que aplica o filtro assim que os campos estiverem disponíveis
+    function aplicar(tentativas) {
         const elAno  = document.getElementById('consFiltroAno');
         const elUnid = document.getElementById('consFiltroUnidade');
+
         if (!elAno || !elUnid) {
-            if (tentativas > 0) setTimeout(() => tentarPreencher(tentativas - 1), 150);
+            // DOM ainda não pronto, tenta novamente
+            if (tentativas > 0) setTimeout(() => aplicar(tentativas - 1), 100);
             return;
         }
+
+        // Preenche os campos
         if (anoFiltro) elAno.value = anoFiltro;
         elUnid.value = unidade;
+
+        // Aplica o filtro
         aplicarFiltrosConsultaInterno();
         _pendingConsultaFiltro = null;
-        setTimeout(iframeUpdateHeight, 400);
-    };
-    setTimeout(() => tentarPreencher(8), 350);
+
+        // Rola para o início da aba
+        setTimeout(() => {
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            iframeUpdateHeight();
+        }, 200);
+    }
+
+    // Aguarda um tick para o Bootstrap mostrar a aba e então aplica
+    setTimeout(() => {
+        const container = document.getElementById('consulta-empenho-content');
+        aplicar(10);
+    }, 50);
 };
 
 function renderizarPaginacaoVG() {
@@ -1111,6 +1134,28 @@ window.alterarPorPaginaVG=function(v){paginacaoVG.porPagina=parseInt(v);paginaca
 function renderizarConsultaEmpenho() {
     const container = document.getElementById('consulta-empenho-content');
     if (!container) return;
+
+    // Se o container já foi renderizado (campos existem), só atualiza os datalists
+    // e reaplicar filtros ativos — não reconstrói o HTML (preserva filtros do usuário)
+    const jaRenderizado = !!document.getElementById('consFiltroAno');
+    if (jaRenderizado) {
+        // Atualiza os datalists com os novos dados carregados em background
+        const anoAtual = document.getElementById('consFiltroAno')?.value || '';
+        atualizarDatalistsConsulta(anoAtual);
+        // Reaplicar filtros já ativos para incluir dados do novo ano
+        aplicarFiltrosConsultaInterno();
+        // Reaplicar filtro pendente se existir
+        if (_pendingConsultaFiltro) {
+            const pf = _pendingConsultaFiltro;
+            _pendingConsultaFiltro = null;
+            const elAno  = document.getElementById('consFiltroAno');
+            const elUnid = document.getElementById('consFiltroUnidade');
+            if (elAno && pf.ano) elAno.value = pf.ano;
+            if (elUnid) elUnid.value = pf.unidade;
+            aplicarFiltrosConsultaInterno();
+        }
+        return;
+    }
 
     const anos = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
     const _anoInicial = anos[0] || '2026';
@@ -1171,7 +1216,7 @@ function renderizarConsultaEmpenho() {
                 <input type="text" class="form-control" id="consFiltroModalidade" list="consListModalidade" placeholder="Digite ou selecione...">
                 <datalist id="consListModalidade">${modalidades.map(m=>`<option value="${m}">`).join('')}</datalist>
             </div>
-            <div class="filter-group" style="flex:2;min-width:160px;">
+            <div class="filter-group" style="flex:2;min-width:180px;">
                 <label class="filter-label">Processo Compra</label>
                 <input type="text" class="form-control" id="consFiltroProcesso" list="consListProcesso" placeholder="Nº Processo Compra...">
                 <datalist id="consListProcesso">${processos.slice(0,200).map(p=>`<option value="${p}">`).join('')}</datalist>
@@ -1568,7 +1613,7 @@ function renderizarConsultaItem() {
                     <th class="sortable-header" onclick="toggleSortItem('elemento_despesa_descricao')" style="min-width:120px;">Elemento<br>Despesa <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('unidade_orcamentaria_sigla')">Sigla <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('unidade_orcamentaria_codigo_nome')">Órgão <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortItem('numero_processo_compra_siad')" style="white-space:nowrap;min-width:140px;">Processo Compra <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('numero_processo_compra_siad')" style="white-space:nowrap;min-width:180px;">Processo Compra <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('_lic_numero_contrato')" style="white-space:nowrap;min-width:100px;">Contrato <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortItem('valor_despesa_empenhada')">Valor Empenhado <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortItem('valor_despesa_liquidada')">Valor Liquidado <i class="material-icons">unfold_more</i></th>
