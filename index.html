@@ -373,13 +373,11 @@ const URL_EMPENHO_BASE_V1 = 'https://raw.githubusercontent.com/transparencia-mg/
 const URL_EMPENHO_BASE_V2 = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/main/dataset/data/empenho';
 const URL_ORGAO_BASE_V1   = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/refs/heads/main/dataset/data/orgao';
 const URL_ORGAO_BASE_V2   = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/main/dataset/data/orgao';
-const URL_PAGAMENTO_BASE  = 'https://raw.githubusercontent.com/transparencia-mg/portal_despesa_empenho/main/dataset/data/pagamento';
 const URL_LICITACOES_BASE = 'https://raw.githubusercontent.com/transparencia-mg/portal_licitacoes_mg/main/dataset/data/licitacoes';
 const PORTAL_DADOS_ABERTOS_URL = 'https://dados.mg.gov.br/dataset/portal_despesa_empenho';
 const ANOS_DISPONIVEIS = [2022, 2023, 2024, 2025, 2026];
 
 let dadosEmpenho = [];
-let dadosPagamentos = [];
 let dadosLicitacoes = [];
 let dadosOrgaoRaw = []; // dados brutos CSV orgao para Visão Geral
 let dadosConsolidados = [];
@@ -396,9 +394,10 @@ let sortConsulta = { col: 'numero_empenho', dir: 'desc' }; // multi: numero_empe
 
 let colunasVisiveisConsulta = {
     ano_empenho: true,
-    unidade_orcamentaria_sigla: true,
-    unidade_orcamentaria_codigo_nome: true,
     numero_empenho: true,
+    unidade_orcamentaria_sigla: true,
+    unidade_orcamentaria_codigo: false,
+    unidade_orcamentaria_nome: true,
     data_registro_doc_empenho: true,
     razao_social_credor: true,
     cnpj_cpf_credor_formatado: true,
@@ -409,17 +408,18 @@ let colunasVisiveisConsulta = {
     elemento_despesa_codigo: false,
     elemento_despesa_descricao: true,
     valor_despesa_empenhada: true,
-    valor_despesa_liquidada: true
+    valor_despesa_liquidada: true,
+    valor_pago_financeiro: true
 };
 
-const colunasFixasConsulta = ['numero_empenho', 'unidade_orcamentaria_codigo_nome', 'valor_despesa_empenhada', 'valor_despesa_liquidada'];
+const colunasFixasConsulta = ['ano_empenho', 'numero_empenho', 'unidade_orcamentaria_sigla', 'unidade_orcamentaria_nome', 'valor_despesa_empenhada', 'valor_despesa_liquidada', 'valor_pago_financeiro'];
 
 const nomesColunas = {
     ano_empenho: 'Ano',
-    unidade_orcamentaria_sigla: 'Sigla',
-    unidade_orcamentaria_codigo_nome: 'Órgão',
-
     numero_empenho: 'Nº Empenho',
+    unidade_orcamentaria_sigla: 'Sigla',
+    unidade_orcamentaria_codigo: 'Cód. Unidade',
+    unidade_orcamentaria_nome: 'Órgão',
     data_registro_doc_empenho: 'Data Registro',
     razao_social_credor: 'Credor',
     cnpj_cpf_credor_formatado: 'CNPJ/CPF',
@@ -440,12 +440,12 @@ const nomesColunas = {
 };
 
 const ordemColunasConsulta = [
-    'ano_empenho','unidade_orcamentaria_sigla','unidade_orcamentaria_codigo_nome',
-    'numero_empenho','data_registro_doc_empenho','razao_social_credor','cnpj_cpf_credor_formatado',
+    'ano_empenho','numero_empenho','unidade_orcamentaria_sigla','unidade_orcamentaria_codigo','unidade_orcamentaria_nome',
+    'data_registro_doc_empenho','razao_social_credor','cnpj_cpf_credor_formatado',
     'licitacao_descricao_da_modalidade','numero_processo_compra_siad',
     '_lic_numero_contrato','objeto_processo',
     'elemento_despesa_codigo','elemento_despesa_descricao',
-    'valor_despesa_empenhada','valor_despesa_liquidada'
+    'valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro'
 ];
 
 // ============================================================
@@ -510,67 +510,7 @@ function parsearValorMonetario(v) {
     return isNaN(num) ? 0 : num;
 }
 
-// ============================================================
-// JOIN PAGAMENTOS — função centralizada
-// Cruza dadosPagamentos com um empenho consolidado.
-// Chaves OBRIGATÓRIAS (quando presentes no empenho):
-//   numero_empenho + numero_processo_compra_siad +
-//   unidade_orcamentaria_codigo_nome + razao_social_credor +
-//   cnpj_cpf_credor_formatado
-// Chaves TOLERANTES (só filtram se ambos os lados tiverem valor):
-//   ano_empenho + unidade_orcamentaria_sigla
-// ============================================================
-function joinPagamentos(emp) {
-    const numE      = String(emp.numero_empenho||'').trim();
-    if (!numE) return [];
 
-    const processoE = String(emp.numero_processo_compra_siad||'').trim();
-    const codigoE   = String(emp.unidade_orcamentaria_codigo_nome||'').trim();
-    const credorE   = String(emp.razao_social_credor||'').trim();
-    const cnpjE     = String(emp.cnpj_cpf_credor_formatado||'').trim();
-    // complementares (tolerantes)
-    const anoE      = String(emp.ano_empenho||'').trim();
-    const siglaE    = String(emp.unidade_orcamentaria_sigla||'').trim();
-
-    return dadosPagamentos.filter(p => {
-        // 1. numero_empenho — obrigatório
-        if (String(p['numero_empenho']||'').trim() !== numE) return false;
-
-        // 2. numero_processo_compra_siad — obrigatório quando o empenho tem processo
-        if (processoE) {
-            const processoP = String(p['numero_processo_compra_siad']||'').trim();
-            if (processoP !== processoE) return false;
-        }
-
-        // 3. unidade_orcamentaria_codigo_nome — obrigatório quando o empenho tem código
-        if (codigoE) {
-            const codigoP = String(p['unidade_orcamentaria_codigo_nome']||'').trim();
-            if (codigoP && codigoP !== codigoE) return false;
-        }
-
-        // 4. razao_social_credor — obrigatório quando o empenho tem credor
-        if (credorE) {
-            const credorP = String(p['razao_social_credor']||'').trim();
-            if (credorP && credorP !== credorE) return false;
-        }
-
-        // 5. cnpj_cpf_credor_formatado — obrigatório quando o empenho tem CNPJ
-        if (cnpjE) {
-            const cnpjP = String(p['cnpj_cpf_credor_formatado']||'').trim();
-            if (cnpjP && cnpjP !== cnpjE) return false;
-        }
-
-        // 6. ano_empenho — tolerante (filtra só se ambos tiverem valor)
-        const anoP = String(p['ano_empenho']||p['ano_de_exercicio']||'').trim();
-        if (anoP && anoE && anoP !== anoE) return false;
-
-        // 7. unidade_orcamentaria_sigla — tolerante
-        const siglaP = String(p['unidade_orcamentaria_sigla']||'').trim();
-        if (siglaP && siglaE && siglaP !== siglaE) return false;
-
-        return true;
-    });
-}
 
 function voltarAoTopo() {
     try { if (window.parent && window.parent !== window) window.parent.scrollTo({ top: 0, behavior: 'smooth' }); } catch(e) {}
@@ -688,15 +628,17 @@ function normalizarChave(s) { return String(s||'').toUpperCase().replace(/[\s\-\
 function consolidarEmpenho(emp) {
     const proc = emp['numero_processo_compra_siad'] ? String(emp['numero_processo_compra_siad']).trim() : null;
     const lic = proc ? (_licitacoesMap.get(proc) || _licitacoesMapNorm.get(normalizarChave(proc)) || null) : null;
-    // Colunas: unidade_orcamentaria_codigo_nome, unidade_orcamentaria_sigla
-    const codigoNome = emp['unidade_orcamentaria_codigo_nome'] || '';
+    // Colunas: unidade_orcamentaria_codigo, unidade_orcamentaria_nome, unidade_orcamentaria_sigla
+    const uoCodigo = emp['unidade_orcamentaria_codigo'] || '';
+    const uoNome = emp['unidade_orcamentaria_nome'] || '';
     const sigla = emp['unidade_orcamentaria_sigla'] || '';
     let anoVal = emp['ano_empenho'] ? formatarInteiro(emp['ano_empenho']) : '';
     const anoNum = parseInt(anoVal);
     if (!anoVal || isNaN(anoNum) || anoNum < 2000 || anoNum > 2100) anoVal = null;
     return {
         ano_empenho: anoVal,
-        unidade_orcamentaria_codigo_nome: codigoNome,
+        unidade_orcamentaria_codigo: uoCodigo,
+        unidade_orcamentaria_nome: uoNome,
         unidade_orcamentaria_sigla: sigla,
         numero_empenho: emp['numero_empenho'] ? formatarInteiro(emp['numero_empenho']) : '',
         data_registro_doc_empenho: emp['data_registro_doc_empenho'] || '',
@@ -738,7 +680,7 @@ function consolidarEmpenho(emp) {
 }
 
 async function carregarAno(ano) {
-    const resultados = { empenhos: [], licitacoes: [], orgaos: [], pagamentos: [] };
+    const resultados = { empenhos: [], licitacoes: [], orgaos: [] };
     try {
         const resp = await fetchCSVComFallback(URL_EMPENHO_BASE_V1, URL_EMPENHO_BASE_V2, ano);
         if (resp) {
@@ -759,10 +701,6 @@ async function carregarAno(ano) {
             resultados.orgaos = parseCSV(t3);
         }
     } catch(e) {}
-    try {
-        const resp4 = await fetch(`${URL_PAGAMENTO_BASE}${ano}.csv`);
-        if (resp4.ok) { const t4 = await resp4.text(); resultados.pagamentos = parseCSV(t4); }
-    } catch(e) {}
     return resultados;
 }
 
@@ -777,15 +715,14 @@ function integrarDadosAno(dados, ano) {
     });
     // Atualiza orgãos - suporte às novas colunas
     dados.orgaos.forEach(o => {
-        // Novas colunas: unidade_orcamentaria_codigo_nome, unidade_orcamentaria_sigla
-        const codigoNome = o['unidade_orcamentaria_codigo_nome'] || '';
+        // Novas colunas: unidade_orcamentaria_codigo, unidade_orcamentaria_nome, unidade_orcamentaria_sigla
+        const uoCodigo = o['unidade_orcamentaria_codigo'] || '';
+        const uoNome = o['unidade_orcamentaria_nome'] || '';
         const sigla = o['unidade_orcamentaria_sigla'] || '';
         const anoEx = o['ano_de_exercicio'] || String(ano);
-        const oEnriquecido = { ...o, _ano_exercicio: String(anoEx), unidade_orcamentaria_codigo_nome: codigoNome, unidade_orcamentaria_sigla: sigla };
+        const oEnriquecido = { ...o, _ano_exercicio: String(anoEx), unidade_orcamentaria_codigo: uoCodigo, unidade_orcamentaria_nome: uoNome, unidade_orcamentaria_sigla: sigla };
         dadosOrgaoRaw.push(oEnriquecido);
     });
-    // Atualiza pagamentos
-    dadosPagamentos = [...dadosPagamentos, ...dados.pagamentos];
     // Adiciona empenhos consolidados
     dadosEmpenho = [...dadosEmpenho, ...dados.empenhos];
     const novosConsolidados = dados.empenhos
@@ -831,7 +768,6 @@ async function carregarDados() {
     mostrarLoading(true, 'Carregando dados de 2026...');
     try {
         dadosEmpenho = [];
-        dadosPagamentos = [];
         dadosLicitacoes = [];
         dadosOrgaoRaw = [];
         dadosConsolidados = [];
@@ -920,7 +856,7 @@ function getVGDadosFiltrados() {
         return String(anoExer) === String(ano);
     });
     if (sigla) dados = dados.filter(d => (d.unidade_orcamentaria_sigla||'').toLowerCase().includes(sigla));
-    if (unidade) dados = dados.filter(d => (d.unidade_orcamentaria_codigo_nome||'').toLowerCase().includes(unidade));
+    if (unidade) dados = dados.filter(d => (d.unidade_orcamentaria_nome||'').toLowerCase().includes(unidade));
     return dados;
 }
 
@@ -930,9 +866,10 @@ function agruparUnidades(dados) {
     // dados aqui é o dadosOrgao já filtrado por ano
     const map = new Map();
     dados.forEach(d => {
-        const key = (d.unidade_orcamentaria_codigo_nome||'') + '|' + (d.unidade_orcamentaria_sigla||'');
+        const key = (d.unidade_orcamentaria_nome||'') + '|' + (d.unidade_orcamentaria_sigla||'');
         if (!map.has(key)) map.set(key, {
-            unidade_orcamentaria_codigo_nome: d.unidade_orcamentaria_codigo_nome||'',
+            unidade_orcamentaria_codigo: d.unidade_orcamentaria_codigo||'',
+            unidade_orcamentaria_nome: d.unidade_orcamentaria_nome||'',
             unidade_orcamentaria_sigla: d.unidade_orcamentaria_sigla||'',
             valor_despesa_empenhada: 0, valor_despesa_liquidada: 0,
             valor_pago_financeiro: 0, valor_pago_processado: 0,
@@ -954,7 +891,7 @@ function renderizarVisaoGeral() {
     if (!container) return;
     // Anos disponíveis a partir do CSV orgao
     const anosDisp = [...new Set(dadosOrgaoRaw.map(d => d['ano_de_exercicio'] || d['_ano_exercicio']))].filter(Boolean).sort((a,b)=>b-a);
-    const unidades = [...new Set(dadosOrgaoRaw.map(d => d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort();
+    const unidades = [...new Set(dadosOrgaoRaw.map(d => d.unidade_orcamentaria_nome))].filter(Boolean).sort();
     const siglas = [...new Set(dadosOrgaoRaw.map(d => d.unidade_orcamentaria_sigla))].filter(Boolean).sort();
     container.innerHTML = `
     <div class="filter-container">
@@ -1006,7 +943,7 @@ function renderizarVisaoGeral() {
             <table class="table" id="vgTable">
                 <thead><tr>
                     <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_sigla')">Sigla <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_codigo_nome')">Órgão<i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortVG('unidade_orcamentaria_nome')">Órgão<i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortVG('valor_despesa_empenhada')">Valor Empenhado <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortVG('valor_despesa_liquidada')">Valor Liquidado <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortVG('valor_pago_financeiro')">Valor Pago <i class="material-icons">unfold_more</i></th>
@@ -1065,7 +1002,7 @@ function aplicarFiltrosVGInterno() {
     if (ctx && top10.length > 0) {
         chartBar = new Chart(ctx, {
             type: 'bar',
-            data: { labels: top10.map(u=>(u.unidade_orcamentaria_codigo_nome||'').substring(0,35)+'...'), datasets: [
+            data: { labels: top10.map(u=>(u.unidade_orcamentaria_nome||'').substring(0,35)+'...'), datasets: [
                 { label: 'Empenhado', data: top10.map(u=>u.valor_despesa_empenhada), backgroundColor: '#3a7cb8' },
                 { label: 'Pago', data: top10.map(u=>u.valor_pago_financeiro), backgroundColor: '#28a745' }
             ]},
@@ -1087,7 +1024,7 @@ function atualizarTabelaVG() {
     const pagina = window._vgUnidadesOrdenadas.slice(inicio, inicio + paginacaoVG.porPagina);
     const ano = document.getElementById('vgFiltroAno')?.value || '';
     document.getElementById('vgTableBody').innerHTML = pagina.map((u, idx) => {
-        const unidNome = u.unidade_orcamentaria_codigo_nome || '';
+        const unidNome = u.unidade_orcamentaria_nome || '';
         // Usa data-attribute para evitar problemas com aspas/caracteres especiais no nome
         window._vgLinkData = window._vgLinkData || {};
         window._vgLinkData['r' + idx] = { unidade: unidNome, ano: ano };
@@ -1140,7 +1077,7 @@ window.limparFiltrosVG = function() {
 window.buscarVG = function(termo) {
     const t = (termo||'').toLowerCase().trim();
     if (!t) { window._vgUnidadesOrdenadas = ordenarDadosGenerico(agruparUnidades(getVGDadosFiltrados()), sortVG.col, sortVG.dir); }
-    else { window._vgUnidadesOrdenadas = window._vgUnidadesOrdenadas.filter(u=>(u.unidade_orcamentaria_codigo_nome||'').toLowerCase().includes(t)||(u.unidade_orcamentaria_sigla||'').toLowerCase().includes(t)); }
+    else { window._vgUnidadesOrdenadas = window._vgUnidadesOrdenadas.filter(u=>(u.unidade_orcamentaria_nome||'').toLowerCase().includes(t)||(u.unidade_orcamentaria_sigla||'').toLowerCase().includes(t)); }
     paginacaoVG.atual=1; paginacaoVG.total=Math.max(1,Math.ceil(window._vgUnidadesOrdenadas.length/paginacaoVG.porPagina));
     const badge=document.getElementById('vgBadge'); if(badge) badge.textContent=`${window._vgUnidadesOrdenadas.length} unidades`;
     atualizarTabelaVG();
@@ -1242,7 +1179,7 @@ function renderizarConsultaEmpenho() {
     const _anoInicial = anos[0] || '2026';
     const _dadosAnoIni = dadosConsolidados.filter(d => d.ano_empenho == _anoInicial);
     const siglas = [...new Set(_dadosAnoIni.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort();
-    const unidades = [...new Set(_dadosAnoIni.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort();
+    const unidades = [...new Set(_dadosAnoIni.map(d=>d.unidade_orcamentaria_nome))].filter(Boolean).sort();
     const credores = [...new Set(_dadosAnoIni.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort();
     const modalidades = [...new Set(_dadosAnoIni.map(d=>d.licitacao_descricao_da_modalidade))].filter(Boolean).sort();
     const elementos = [...new Set(_dadosAnoIni.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
@@ -1375,7 +1312,7 @@ function renderizarConsultaEmpenho() {
     dadosFiltradosConsulta = ordenarMulti(dadosFiltradosConsulta, [
         { col: 'numero_empenho', dir: 'desc' },
         { col: 'data_registro_doc_empenho', dir: 'desc' },
-        { col: 'unidade_orcamentaria_codigo_nome', dir: 'asc' }
+        { col: 'unidade_orcamentaria_nome', dir: 'asc' }
     ]);
     paginacaoConsulta.atual = 1;
     paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
@@ -1428,13 +1365,13 @@ function atualizarTabelaConsulta() {
     document.getElementById('consultaTableBody').innerHTML = pagina.map(item => {
         let row = '<tr>';
         // Botão de ação na PRIMEIRA coluna (antes do Ano)
-        row += `<td class="text-center"><button class="btn-action" title="Ver detalhes" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_codigo_nome||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td>`;
+        row += `<td class="text-center"><button class="btn-action" title="Ver detalhes" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_nome||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td>`;
         for (const col of ordemColunasConsulta) {
             const fixo = colunasFixasConsulta.includes(col);
             if (!fixo && !colunasVisiveisConsulta[col]) continue;
             let valor = item[col];
             if (col === 'numero_empenho') {
-                row += `<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_codigo_nome||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
+                row += `<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_nome||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
             } else if (col === 'numero_processo_compra_siad') {
                 row += `<td>${gerarLinkProcessoCompra(item)}</td>`;
             } else if (col === '_lic_numero_contrato') {
@@ -1481,7 +1418,7 @@ function toggleSortConsulta(col) {
     dadosFiltradosConsulta=ordenarMulti(dadosFiltradosConsulta,[
         { col: sortConsulta.col, dir: sortConsulta.dir },
         { col: 'data_registro_doc_empenho', dir: 'desc' },
-        { col: 'unidade_orcamentaria_codigo_nome', dir: 'asc' }
+        { col: 'unidade_orcamentaria_nome', dir: 'asc' }
     ]);
     paginacaoConsulta.atual=1; atualizarTabelaConsulta();
 }
@@ -1505,7 +1442,7 @@ window.aplicarFiltrosConsultaInterno = function() {
     dadosFiltradosConsulta = dadosConsolidados.filter(d => {
         if (ano     && d.ano_empenho != ano) return false;
         if (sigla   && !(d.unidade_orcamentaria_sigla||'').toLowerCase().includes(sigla)) return false;
-        if (unidade && !(d.unidade_orcamentaria_codigo_nome||'').toLowerCase().includes(unidade)) return false;
+        if (unidade && !(d.unidade_orcamentaria_nome||'').toLowerCase().includes(unidade)) return false;
         if (empenho && !(d.numero_empenho||'').toLowerCase().includes(empenho)) return false;
         if (credor  && !(d.razao_social_credor||'').toLowerCase().includes(credor)) return false;
         if (cnpj    && !(d.cnpj_cpf_credor_formatado||'').toLowerCase().includes(cnpj)) return false;
@@ -1522,7 +1459,7 @@ window.aplicarFiltrosConsultaInterno = function() {
     dadosFiltradosConsulta = ordenarMulti(dadosFiltradosConsulta, [
         { col: sortConsulta.col, dir: sortConsulta.dir },
         { col: 'data_registro_doc_empenho', dir: 'desc' },
-        { col: 'unidade_orcamentaria_codigo_nome', dir: 'asc' }
+        { col: 'unidade_orcamentaria_nome', dir: 'asc' }
     ]);
     paginacaoConsulta.atual = 1;
     paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
@@ -1540,7 +1477,7 @@ window.limparFiltrosConsulta = function() {
     dadosFiltradosConsulta = ordenarMulti(dadosFiltradosConsulta, [
         { col: 'numero_empenho', dir: 'desc' },
         { col: 'data_registro_doc_empenho', dir: 'desc' },
-        { col: 'unidade_orcamentaria_codigo_nome', dir: 'asc' }
+        { col: 'unidade_orcamentaria_nome', dir: 'asc' }
     ]);
     paginacaoConsulta.atual = 1;
     paginacaoConsulta.total = Math.max(1, Math.ceil(dadosFiltradosConsulta.length / paginacaoConsulta.porPagina));
@@ -1552,7 +1489,7 @@ window.buscarConsulta = function(termo) {
     if (!t) { atualizarTabelaConsulta(); return; }
     const filtrado = dadosFiltradosConsulta.filter(d =>
         (d.numero_empenho||'').toLowerCase().includes(t) ||
-        (d.unidade_orcamentaria_codigo_nome||'').toLowerCase().includes(t) ||
+        (d.unidade_orcamentaria_nome||'').toLowerCase().includes(t) ||
         (d.unidade_orcamentaria_sigla||'').toLowerCase().includes(t) ||
         (d.razao_social_credor||'').toLowerCase().includes(t) ||
         (d.objeto_processo||'').toLowerCase().includes(t) ||
@@ -1563,11 +1500,11 @@ window.buscarConsulta = function(termo) {
     document.getElementById('consultaTableBody').innerHTML = filtrado.slice(0, paginacaoConsulta.porPagina).map(item => {
         let row='<tr>';
         const campos$=['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
-        row+=`<td class="text-center"><button class="btn-action" title="Ver detalhes" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_codigo_nome||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td>`;
+        row+=`<td class="text-center"><button class="btn-action" title="Ver detalhes" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_nome||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td>`;
         for (const col of ordemColunasConsulta) {
             if (!colunasFixasConsulta.includes(col)&&!colunasVisiveisConsulta[col]) continue;
             let valor=item[col];
-            if (col==='numero_empenho') row+=`<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_codigo_nome||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
+            if (col==='numero_empenho') row+=`<td><a href="#" class="empenho-link" onclick="verDetalhesEmpenho('${String(item.numero_empenho||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_nome||'').replace(/'/g,"\\'")}');return false;">${valor||'-'}</a></td>`;
             else if (col==='numero_processo_compra_siad') row+=`<td>${gerarLinkProcessoCompra(item)}</td>`;
             else if (col==='_lic_numero_contrato') { const c=valor||'',u=item._lic_contrato_url||''; row+=`<td>${c&&u?`<a href="${u}" target="_blank" class="compra-link">${c}</a>`:(c||'-')}</td>`; }
             else if (col==='objeto_processo') { const o=valor||''; row+=`<td title="${o}">${o.length>60?o.substring(0,60)+'...':(o||'-')}</td>`; }
@@ -1614,7 +1551,7 @@ function renderizarConsultaItem() {
     const _anoInicialItem = anos[0] || '2026';
     const _dadosAnoIniItem = dadosConsolidados.filter(d => d.ano_empenho == _anoInicialItem);
     const siglas = [...new Set(_dadosAnoIniItem.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort();
-    const unidades = [...new Set(_dadosAnoIniItem.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort();
+    const unidades = [...new Set(_dadosAnoIniItem.map(d=>d.unidade_orcamentaria_nome))].filter(Boolean).sort();
     const itens = [...new Set(_dadosAnoIniItem.map(d=>d.item_despesa_codigo))].filter(Boolean).sort();
     const descsItem = [...new Set(_dadosAnoIniItem.map(d=>d.item_despesa_descricao))].filter(Boolean).sort();
     const elementos = [...new Set(_dadosAnoIniItem.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort();
@@ -1709,7 +1646,7 @@ function renderizarConsultaItem() {
                     <th class="sortable-header" onclick="toggleSortItem('elemento_despesa_codigo')" style="min-width:140px;">Cód. Elem.<br>Despesa <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('elemento_despesa_descricao')" style="min-width:120px;">Elemento<br>Despesa <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('unidade_orcamentaria_sigla')">Sigla <i class="material-icons">unfold_more</i></th>
-                    <th class="sortable-header" onclick="toggleSortItem('unidade_orcamentaria_codigo_nome')">Órgão <i class="material-icons">unfold_more</i></th>
+                    <th class="sortable-header" onclick="toggleSortItem('unidade_orcamentaria_nome')">Órgão <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('numero_processo_compra_siad')" style="white-space:nowrap;min-width:180px;">Processo Compra <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header" onclick="toggleSortItem('_lic_numero_contrato')" style="white-space:nowrap;min-width:100px;">Contrato <i class="material-icons">unfold_more</i></th>
                     <th class="sortable-header text-right" onclick="toggleSortItem('valor_despesa_empenhada')">Valor Empenhado <i class="material-icons">unfold_more</i></th>
@@ -1733,7 +1670,7 @@ function renderizarConsultaItem() {
 function agruparPorItem(dados) {
     const map = new Map();
     dados.forEach(d => {
-        const key = (d.ano_empenho||'') + '|' + (d.item_despesa_codigo||'SEM_COD') + '|' + (d.item_despesa_descricao||'') + '|' + (d.elemento_despesa_codigo||'') + '|' + (d.elemento_despesa_descricao||'') + '|' + (d.unidade_orcamentaria_sigla||'') + '|' + (d.unidade_orcamentaria_codigo_nome||'') + '|' + (d.numero_processo_compra_siad||'') + '|' + (d._lic_numero_contrato||'');
+        const key = (d.ano_empenho||'') + '|' + (d.item_despesa_codigo||'SEM_COD') + '|' + (d.item_despesa_descricao||'') + '|' + (d.elemento_despesa_codigo||'') + '|' + (d.elemento_despesa_descricao||'') + '|' + (d.unidade_orcamentaria_sigla||'') + '|' + (d.unidade_orcamentaria_nome||'') + '|' + (d.numero_processo_compra_siad||'') + '|' + (d._lic_numero_contrato||'');
         if (!map.has(key)) map.set(key, {
             ano_empenho: d.ano_empenho||'',
             item_despesa_codigo: d.item_despesa_codigo||'',
@@ -1741,7 +1678,7 @@ function agruparPorItem(dados) {
             elemento_despesa_codigo: d.elemento_despesa_codigo||'',
             elemento_despesa_descricao: d.elemento_despesa_descricao||'',
             unidade_orcamentaria_sigla: d.unidade_orcamentaria_sigla||'',
-            unidade_orcamentaria_codigo_nome: d.unidade_orcamentaria_codigo_nome||'',
+            unidade_orcamentaria_nome: d.unidade_orcamentaria_nome||'',
             numero_processo_compra_siad: d.numero_processo_compra_siad||'',
             _lic_numero_contrato: d._lic_numero_contrato||'',
             _lic_contrato_url: d._lic_contrato_url||'',
@@ -1775,7 +1712,7 @@ window.aplicarFiltrosItemInterno = function() {
     if (desc)     dados = dados.filter(d => (d.item_despesa_descricao||'').toLowerCase().includes(desc));
     if (elem)     dados = dados.filter(d => (d.elemento_despesa_codigo||'').toLowerCase().includes(elem));
     if (descElem) dados = dados.filter(d => (d.elemento_despesa_descricao||'').toLowerCase().includes(descElem));
-    if (unidade)  dados = dados.filter(d => (d.unidade_orcamentaria_codigo_nome||'').toLowerCase().includes(unidade));
+    if (unidade)  dados = dados.filter(d => (d.unidade_orcamentaria_nome||'').toLowerCase().includes(unidade));
     if (processo) dados = dados.filter(d => (d.numero_processo_compra_siad||'').toLowerCase().includes(processo));
     if (contrato) dados = dados.filter(d => (d._lic_numero_contrato||'').toLowerCase().includes(contrato));
 
@@ -1811,7 +1748,7 @@ function atualizarTabelaItem() {
             <td>${item.elemento_despesa_codigo||'-'}</td>
             <td>${item.elemento_despesa_descricao||'-'}</td>
             <td>${item.unidade_orcamentaria_sigla||'-'}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.unidade_orcamentaria_codigo_nome||''}">${item.unidade_orcamentaria_codigo_nome||'-'}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${item.unidade_orcamentaria_nome||''}">${item.unidade_orcamentaria_nome||'-'}</td>
             <td>${proc&&procUrl?`<a href="${procUrl}" target="_blank" class="compra-link">${proc}</a>`:(proc||'-')}</td>
             <td>${contrato&&contratoUrl?`<a href="${contratoUrl}" target="_blank" class="compra-link">${contrato}</a>`:(contrato||'-')}</td>
             <td class="text-right" style="font-weight:600;color:#1a3a5c;">${formatarMoeda(item.valor_despesa_empenhada)}</td>
@@ -1856,7 +1793,7 @@ window.mudarPaginaItem=function(p){if(p<1||p>paginacaoItem.total)return;paginaca
 window.alterarPorPaginaItem=function(v){paginacaoItem.porPagina=parseInt(v);paginacaoItem.atual=1;paginacaoItem.total=Math.max(1,Math.ceil(dadosFiltradosItem.length/paginacaoItem.porPagina));atualizarTabelaItem();};
 window.buscarItem=function(termo){
     const t=(termo||'').toLowerCase().trim();
-    const filtrado = t ? dadosFiltradosItem.filter(d=>(d.item_despesa_codigo||'').toLowerCase().includes(t)||(d.item_despesa_descricao||'').toLowerCase().includes(t)||(d.elemento_despesa_descricao||'').toLowerCase().includes(t)||(d.unidade_orcamentaria_sigla||'').toLowerCase().includes(t)||(d.unidade_orcamentaria_codigo_nome||'').toLowerCase().includes(t)||(d.numero_processo_compra_siad||'').toLowerCase().includes(t)) : dadosFiltradosItem;
+    const filtrado = t ? dadosFiltradosItem.filter(d=>(d.item_despesa_codigo||'').toLowerCase().includes(t)||(d.item_despesa_descricao||'').toLowerCase().includes(t)||(d.elemento_despesa_descricao||'').toLowerCase().includes(t)||(d.unidade_orcamentaria_sigla||'').toLowerCase().includes(t)||(d.unidade_orcamentaria_nome||'').toLowerCase().includes(t)||(d.numero_processo_compra_siad||'').toLowerCase().includes(t)) : dadosFiltradosItem;
     document.getElementById('itemTableBody').innerHTML=filtrado.slice(0,paginacaoItem.porPagina).map(item=>{
         const proc=item.numero_processo_compra_siad||'';const procUrl=proc?gerarUrlComprasMG(proc):null;
         const ct=item._lic_numero_contrato||'';const cu=item._lic_contrato_url||'';
@@ -1864,7 +1801,7 @@ window.buscarItem=function(termo){
             <td class="text-center"><button class="btn-action" title="Ver detalhes" onclick="verDetalhesItem('${String(item.item_despesa_codigo||'').replace(/'/g,"\\'")}','${String(item.unidade_orcamentaria_sigla||'').replace(/'/g,"\\'")}','${String(item.numero_processo_compra_siad||'').replace(/'/g,"\\'")}','${String(item._lic_numero_contrato||'').replace(/'/g,"\\'")}')"><i class="material-icons">visibility</i></button></td>
             <td>${item.ano_empenho||'-'}</td><td>${item.item_despesa_codigo||'-'}</td><td>${item.item_despesa_descricao||'-'}</td><td>${item.elemento_despesa_codigo||'-'}</td><td>${item.elemento_despesa_descricao||'-'}</td>
             <td>${item.unidade_orcamentaria_sigla||'-'}</td>
-            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.unidade_orcamentaria_codigo_nome||'-'}</td>
+            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${item.unidade_orcamentaria_nome||'-'}</td>
             <td>${proc&&procUrl?`<a href="${procUrl}" target="_blank" class="compra-link">${proc}</a>`:(proc||'-')}</td>
             <td>${ct&&cu?`<a href="${cu}" target="_blank" class="compra-link">${ct}</a>`:(ct||'-')}</td>
             <td class="text-right" style="font-weight:600;color:#1a3a5c;">${formatarMoeda(item.valor_despesa_empenhada)}</td><td class="text-right" style="color:#856404;">${formatarMoeda(item.valor_despesa_liquidada)}</td>
@@ -1874,7 +1811,7 @@ window.buscarItem=function(termo){
 };
 window.exportarItemCSV=function(){
     const headers=['Ano','Cód. Item','Descrição Item','Cód. Elemento','Elemento Despesa','Órgão','Processo de Compra','Contrato','Qtd. Empenhos','Valor Empenhado','Valor Liquidado'];
-    const rows=dadosFiltradosItem.map(d=>[d.ano_empenho,d.item_despesa_codigo,d.item_despesa_descricao,d.elemento_despesa_codigo,d.elemento_despesa_descricao,d.unidade_orcamentaria_codigo_nome,d.numero_processo_compra_siad,d._lic_numero_contrato,d.qtd_empenhos,d.valor_despesa_empenhada,d.valor_despesa_liquidada]);
+    const rows=dadosFiltradosItem.map(d=>[d.ano_empenho,d.item_despesa_codigo,d.item_despesa_descricao,d.elemento_despesa_codigo,d.elemento_despesa_descricao,d.unidade_orcamentaria_nome,d.numero_processo_compra_siad,d._lic_numero_contrato,d.qtd_empenhos,d.valor_despesa_empenhada,d.valor_despesa_liquidada]);
     const csv=[headers.join(';'),...rows.map(r=>r.map(c=>`"${c||''}"`).join(';'))].join('\n');
     const blob=new Blob(['\uFEFF'+csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='despesa_por_item.csv';a.click();
 };
@@ -1882,7 +1819,7 @@ window.exportarItemPDF=function(){
     const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'landscape'});
     doc.setFontSize(12);doc.text('Despesa por Item — Transparência MG',14,12);
     doc.setFontSize(8);doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')} | ${dadosFiltradosItem.length} registros`,14,18);
-    const body=dadosFiltradosItem.slice(0,100).map(d=>[d.item_despesa_codigo||'-',d.item_despesa_descricao||'-',d.elemento_despesa_codigo||'-',(d.unidade_orcamentaria_codigo_nome||'-').substring(0,30),d.numero_processo_compra_siad||'-',d._lic_numero_contrato||'-',d.qtd_empenhos,formatarMoeda(d.valor_despesa_empenhada),formatarMoeda(d.valor_despesa_liquidada)]);
+    const body=dadosFiltradosItem.slice(0,100).map(d=>[d.item_despesa_codigo||'-',d.item_despesa_descricao||'-',d.elemento_despesa_codigo||'-',(d.unidade_orcamentaria_nome||'-').substring(0,30),d.numero_processo_compra_siad||'-',d._lic_numero_contrato||'-',d.qtd_empenhos,formatarMoeda(d.valor_despesa_empenhada),formatarMoeda(d.valor_despesa_liquidada)]);
     doc.autoTable({head:[['Cód. Item','Descrição','Elemento','Órgão','Processo Compra','Contrato','Qtd','Empenhado','Liquidado']],body,startY:22,headStyles:{fillColor:[32,68,93]},styles:{fontSize:6}});
     doc.save('despesa_por_item.pdf');
 };
@@ -1912,7 +1849,7 @@ window.verDetalhesEmpenho = function(numEmpenho, siglaOuCod, codigoNome) {
         String(d.numero_empenho) === String(numEmpenho) &&
         (
             (siglaOuCod && String(d.unidade_orcamentaria_sigla) === String(siglaOuCod)) ||
-            (codigoNome && d.unidade_orcamentaria_codigo_nome === codigoNome) ||
+            (codigoNome && d.unidade_orcamentaria_nome === codigoNome) ||
             (!siglaOuCod && !codigoNome)
         )
     );
@@ -1939,7 +1876,7 @@ window.verDetalhesEmpenho = function(numEmpenho, siglaOuCod, codigoNome) {
                 <div class="col-md-2"><div class="info-label">Ano</div><div class="info-value">${item.ano_empenho||'-'}</div></div>
                 <div class="col-md-3"><div class="info-label">Data Registro</div><div class="info-value">${formatarData(item.data_registro_doc_empenho)}</div></div>
                 <div class="col-md-1"><div class="info-label">Sigla</div><div class="info-value">${item.unidade_orcamentaria_sigla||'-'}</div></div>
-                <div class="col-md-4"><div class="info-label">Órgão (Código e Nome)</div><div class="info-value">${item.unidade_orcamentaria_codigo_nome||'-'}</div></div>
+                <div class="col-md-4"><div class="info-label">Órgão</div><div class="info-value">${(item.unidade_orcamentaria_codigo ? item.unidade_orcamentaria_codigo + ' — ' : '') + (item.unidade_orcamentaria_nome||'-')}</div></div>
                 <div class="col-md-5"><div class="info-label">Credor (Beneficiário)</div><div class="info-value">${item.razao_social_credor||'-'}</div></div>
                 <div class="col-md-3"><div class="info-label">CNPJ/CPF Credor</div><div class="info-value">${item.cnpj_cpf_credor_formatado||'-'}</div></div>
                 <div class="col-md-4"><div class="info-label">Elemento de Despesa</div><div class="info-value">${item.elemento_despesa_codigo||'-'}${item.elemento_despesa_descricao?' — '+item.elemento_despesa_descricao:''}</div></div>
@@ -2008,7 +1945,7 @@ window.verDetalhesEmpenho = function(numEmpenho, siglaOuCod, codigoNome) {
     if (item.numero_processo_compra_siad) {
         empenhosRelacionados = dadosConsolidados.filter(d =>
             d.numero_processo_compra_siad === item.numero_processo_compra_siad &&
-            d.unidade_orcamentaria_codigo_nome === item.unidade_orcamentaria_codigo_nome &&
+            d.unidade_orcamentaria_nome === item.unidade_orcamentaria_nome &&
             d.razao_social_credor === item.razao_social_credor &&
             d.cnpj_cpf_credor_formatado === item.cnpj_cpf_credor_formatado &&
             (!item._lic_numero_contrato || !d._lic_numero_contrato || d._lic_numero_contrato === item._lic_numero_contrato)
@@ -2017,6 +1954,7 @@ window.verDetalhesEmpenho = function(numEmpenho, siglaOuCod, codigoNome) {
 
     const totalEmp = empenhosRelacionados.reduce((s,d)=>s+d.valor_despesa_empenhada,0);
     const totalLiq = empenhosRelacionados.reduce((s,d)=>s+d.valor_despesa_liquidada,0);
+    const totalPag = empenhosRelacionados.reduce((s,d)=>s+parsearValorMonetario(d.valor_pago_financeiro),0);
 
     // Empenhos relacionados (outros, excluindo o atual)
     const outrosEmpenhos = empenhosRelacionados.filter(d => String(d.numero_empenho) !== String(item.numero_empenho));
@@ -2031,12 +1969,13 @@ window.verDetalhesEmpenho = function(numEmpenho, siglaOuCod, codigoNome) {
             <td style="padding:6px 9px;white-space:nowrap;color:#555;">${e.ano_empenho||'-'}</td>
             <td style="padding:6px 9px;text-align:right;color:#1a3a5c;font-weight:600;">${formatarMoeda(e.valor_despesa_empenhada)}</td>
             <td style="padding:6px 9px;text-align:right;color:#856404;">${formatarMoeda(e.valor_despesa_liquidada)}</td>
+            <td style="padding:6px 9px;text-align:right;color:#28a745;">${formatarMoeda(e.valor_pago_financeiro)}</td>
         </tr>`;
     }
 
     // Monta HTML da aba
     const headerInfo = item.numero_processo_compra_siad
-        ? `<span style="font-size:11px;opacity:0.85;">Processo: <strong>${item.numero_processo_compra_siad}</strong>${item._lic_numero_contrato ? ` &nbsp;|&nbsp; Contrato: <strong>${item._lic_numero_contrato}</strong>` : ''} &nbsp;|&nbsp; Órgão: <strong>${item.unidade_orcamentaria_sigla||item.unidade_orcamentaria_codigo_nome||'-'}</strong> &nbsp;|&nbsp; Credor: <strong>${item.razao_social_credor||'-'}</strong></span>`
+        ? `<span style="font-size:11px;opacity:0.85;">Processo: <strong>${item.numero_processo_compra_siad}</strong>${item._lic_numero_contrato ? ` &nbsp;|&nbsp; Contrato: <strong>${item._lic_numero_contrato}</strong>` : ''} &nbsp;|&nbsp; Órgão: <strong>${item.unidade_orcamentaria_sigla||item.unidade_orcamentaria_nome||'-'}</strong> &nbsp;|&nbsp; Credor: <strong>${item.razao_social_credor||'-'}</strong></span>`
         : '';
 
     document.getElementById('modalContentEmpenhos').innerHTML = item.numero_processo_compra_siad ? `
@@ -2052,6 +1991,7 @@ window.verDetalhesEmpenho = function(numEmpenho, siglaOuCod, codigoNome) {
             <span><i class="material-icons" style="font-size:13px;vertical-align:middle;color:#1a3a5c;">receipt</i> ${empenhosRelacionados.length} empenho(s)</span>
             <span>Empenhado: <strong style="color:#1a3a5c;">${formatarMoeda(totalEmp)}</strong></span>
             <span>Liquidado: <strong style="color:#856404;">${formatarMoeda(totalLiq)}</strong></span>
+            <span>Pago: <strong style="color:#28a745;">${formatarMoeda(totalPag)}</strong></span>
         </div>
 
         <!-- Tabela de todos os empenhos -->
@@ -2170,16 +2110,14 @@ function renderizarDownloads() {
     if (!container) return;
 
     const arquivos = [
-        { tipo: 'empenho', label: 'Empenho', icone: 'receipt_long', descricao: 'Dados de empenhos por unidade orçamentária: ano, unidade, nº empenho, credor, elemento, item, fonte de recurso, valores empenhados e liquidados.' },
+        { tipo: 'empenho', label: 'Empenho', icone: 'receipt_long', descricao: 'Dados de empenhos por unidade orçamentária: ano, unidade, nº empenho, credor, elemento, item, fonte de recurso, valores empenhados, liquidados e pagos.' },
         { tipo: 'orgao', label: 'Órgão', icone: 'account_balance', descricao: 'Dados por unidade orçamentária com todos os valores financeiros: empenhado, liquidado, pago financeiro, pago processado, pago não processado.' },
-        { tipo: 'pagamento', label: 'Pagamento', icone: 'payments', descricao: 'Dados de pagamentos por empenho, incluindo modalidade de licitação, item, elemento, fonte de recurso, credor e detalhamento dos valores pagos.' },
     ];
 
     const anos = ANOS_DISPONIVEIS.slice().reverse();
 
     const gerarUrl = (tipo, ano) => {
         if (tipo === 'empenho') return `${URL_EMPENHO_BASE_V2}${ano}.csv`;
-        if (tipo === 'pagamento') return `${URL_PAGAMENTO_BASE}${ano}.csv`;
         return `${URL_ORGAO_BASE_V2}${ano}.csv`;
     };
 
@@ -2237,7 +2175,8 @@ function renderizarDownloads() {
 const DICIONARIO = {
     'empenho': [
         { campo:'ano_de_exercicio', descricao:'Ano de exercício fiscal da despesa', tipo:'Número (AAAA)' },
-        { campo:'unidade_orcamentaria_codigo_nome', descricao:'Código e nome concatenados da unidade orçamentária / órgão (ex: "1234 - Secretaria de Saúde")', tipo:'Texto' },
+        { campo:'unidade_orcamentaria_codigo', descricao:'Código da unidade orçamentária / órgão', tipo:'Texto' },
+        { campo:'unidade_orcamentaria_nome', descricao:'Nome da unidade orçamentária / órgão', tipo:'Texto' },
         { campo:'unidade_orcamentaria_sigla', descricao:'Sigla da unidade orçamentária / órgão (ex: "SES", "SEF")', tipo:'Texto' },
         { campo:'ano_empenho', descricao:'Ano de referência do empenho (ano fiscal)', tipo:'Número (AAAA)' },
         { campo:'numero_empenho', descricao:'Número sequencial do empenho no exercício fiscal', tipo:'Número inteiro' },
@@ -2253,10 +2192,15 @@ const DICIONARIO = {
         { campo:'cnpj_cpf_credor_formatado', descricao:'CNPJ ou CPF do credor formatado (com pontuação)', tipo:'Texto' },
         { campo:'valor_despesa_empenhada', descricao:'Valor total empenhado — reserva orçamentária realizada para a despesa', tipo:'Moeda (R$)' },
         { campo:'valor_despesa_liquidada', descricao:'Valor total liquidado — após recebimento e verificação do serviço/produto', tipo:'Moeda (R$)' },
+        { campo:'valor_pago_financeiro', descricao:'Valor pago financeiramente no exercício corrente', tipo:'Moeda (R$)' },
+        { campo:'valor_pago_processado', descricao:'Valor pago de restos a pagar processados (RP já liquidados em exercícios anteriores)', tipo:'Moeda (R$)' },
+        { campo:'valor_pago_nao_processado', descricao:'Valor pago de restos a pagar não processados', tipo:'Moeda (R$)' },
+        { campo:'valor_pago_rp', descricao:'Valor total pago de restos a pagar (processados + não processados)', tipo:'Moeda (R$)' },
     ],
     'orgao': [
         { campo:'ano_de_exercicio', descricao:'Ano de exercício fiscal da despesa', tipo:'Número (AAAA)' },
-        { campo:'unidade_orcamentaria_codigo_nome', descricao:'Código e nome concatenados da unidade orçamentária (ex: "1234 - Secretaria de Saúde")', tipo:'Texto' },
+        { campo:'unidade_orcamentaria_codigo', descricao:'Código da unidade orçamentária', tipo:'Texto' },
+        { campo:'unidade_orcamentaria_nome', descricao:'Nome da unidade orçamentária', tipo:'Texto' },
         { campo:'unidade_orcamentaria_sigla', descricao:'Sigla oficial da unidade orçamentária / órgão', tipo:'Texto' },
         { campo:'valor_despesa_empenhada', descricao:'Total empenhado pelo órgão no exercício', tipo:'Moeda (R$)' },
         { campo:'valor_despesa_liquidada', descricao:'Total liquidado pelo órgão no exercício', tipo:'Moeda (R$)' },
@@ -2265,27 +2209,6 @@ const DICIONARIO = {
         { campo:'valor_pago_nao_processado', descricao:'Valor pago de restos a pagar não processados', tipo:'Moeda (R$)' },
         { campo:'valor_pago_rp', descricao:'Valor total pago de restos a pagar (processados + não processados)', tipo:'Moeda (R$)' },
     ],
-    'pagamento': [
-        { campo:'ano_de_exercicio', descricao:'Ano de exercício fiscal da despesa', tipo:'Número (AAAA)' },
-        { campo:'unidade_orcamentaria_codigo_nome', descricao:'Código e nome concatenados da unidade orçamentária responsável pelo pagamento', tipo:'Texto' },
-        { campo:'unidade_orcamentaria_sigla', descricao:'Sigla da unidade orçamentária responsável pelo pagamento', tipo:'Texto' },
-        { campo:'ano_empenho', descricao:'Ano do empenho ao qual o pagamento está vinculado', tipo:'Número (AAAA)' },
-        { campo:'numero_empenho', descricao:'Número do empenho ao qual o pagamento está vinculado', tipo:'Número inteiro' },
-        { campo:'data_registro_doc_empenho', descricao:'Data de registro do empenho original', tipo:'Data' },
-        { campo:'numero_processo_compra_siad', descricao:'Número do processo de compra vinculado', tipo:'Texto' },
-        { campo:'licitacao_descricao_da_modalidade', descricao:'Modalidade de licitação utilizada na contratação', tipo:'Texto' },
-        { campo:'elemento_despesa_codigo', descricao:'Código do elemento de despesa', tipo:'Número inteiro' },
-        { campo:'elemento_despesa_descricao', descricao:'Descrição do elemento de despesa', tipo:'Texto' },
-        { campo:'item_despesa_codigo', descricao:'Código do item de despesa', tipo:'Número inteiro' },
-        { campo:'item_despesa_descricao', descricao:'Descrição do item de despesa', tipo:'Texto' },
-        { campo:'fonte_recurso_codigo', descricao:'Código da fonte de recurso', tipo:'Número inteiro' },
-        { campo:'fonte_recurso_descricao', descricao:'Descrição da fonte de recurso', tipo:'Texto' },
-        { campo:'razao_social_credor', descricao:'Razão social ou nome do credor que recebeu o pagamento', tipo:'Texto' },
-        { campo:'cnpj_cpf_credor_formatado', descricao:'CNPJ ou CPF do credor formatado', tipo:'Texto' },
-        { campo:'valor_pago_financeiro', descricao:'Valor pago financeiramente no exercício corrente', tipo:'Moeda (R$)' },
-        { campo:'valor_pago_processado', descricao:'Valor pago de restos a pagar processados', tipo:'Moeda (R$)' },
-        { campo:'valor_pago_nao_processado', descricao:'Valor pago de restos a pagar não processados', tipo:'Moeda (R$)' },
-    ],
 };
 
 function renderizarDicionario() {
@@ -2293,8 +2216,8 @@ function renderizarDicionario() {
     if (!container) return;
 
     const tabelas = Object.keys(DICIONARIO);
-    const labelsTabela = { empenho: 'Empenho', orgao: 'Órgão', pagamento: 'Pagamento' };
-    const coresTabela  = { empenho: '#1a3a5c', orgao: '#28a745', pagamento: '#b93c42' };
+    const labelsTabela = { empenho: 'Empenho', orgao: 'Órgão' };
+    const coresTabela  = { empenho: '#1a3a5c', orgao: '#28a745' };
 
     container.innerHTML = `
     <div class="filter-container">
@@ -2386,7 +2309,7 @@ window.buscarDicionario = function(termo) {
 // ============================================================
 window.exportarTabelaVGCSV = function() {
     const headers = ['Código','Unidade Orçamentária','Valor Empenhado','Valor Liquidado','Valor Pago','Pago Processado','Pago Não Processado','Pago RP'];
-    const rows = (window._vgUnidadesOrdenadas||[]).map(u=>[u.unidade_orcamentaria_sigla,u.unidade_orcamentaria_codigo_nome,u.valor_despesa_empenhada,u.valor_despesa_liquidada,u.valor_pago_financeiro,u.valor_pago_processado,u.valor_pago_nao_processado,u.valor_pago_rp]);
+    const rows = (window._vgUnidadesOrdenadas||[]).map(u=>[u.unidade_orcamentaria_sigla,u.unidade_orcamentaria_nome,u.valor_despesa_empenhada,u.valor_despesa_liquidada,u.valor_pago_financeiro,u.valor_pago_processado,u.valor_pago_nao_processado,u.valor_pago_rp]);
     const csv=[headers.join(';'),...rows.map(r=>r.map(c=>`"${c||''}"`).join(';'))].join('\n');
     const blob=new Blob(['\uFEFF'+csv],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='visao_geral_empenhos.csv';a.click();
 };
@@ -2395,7 +2318,7 @@ window.exportarTabelaVGPDF = function() {
     const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'landscape'});
     doc.setFontSize(12);doc.text('Visão Geral — Despesa por Empenho (MG)',14,12);
     doc.setFontSize(8);doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`,14,18);
-    const body=(window._vgUnidadesOrdenadas||[]).slice(0,100).map(u=>[u.unidade_orcamentaria_sigla||'-',u.unidade_orcamentaria_codigo_nome||'-',formatarMoeda(u.valor_despesa_empenhada),formatarMoeda(u.valor_despesa_liquidada),formatarMoeda(u.valor_pago_financeiro),formatarMoeda(u.valor_pago_rp)]);
+    const body=(window._vgUnidadesOrdenadas||[]).slice(0,100).map(u=>[u.unidade_orcamentaria_sigla||'-',u.unidade_orcamentaria_nome||'-',formatarMoeda(u.valor_despesa_empenhada),formatarMoeda(u.valor_despesa_liquidada),formatarMoeda(u.valor_pago_financeiro),formatarMoeda(u.valor_pago_rp)]);
     doc.autoTable({head:[['Código','Unidade Orçamentária','Empenhado','Liquidado','Pago','Pago RP']],body,startY:22,headStyles:{fillColor:[32,68,93]},styles:{fontSize:7}});
     doc.save('visao_geral_empenhos.pdf');
 };
@@ -2415,7 +2338,7 @@ window.exportarConsultaPDF = function() {
     const {jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'landscape'});
     doc.setFontSize(12);doc.text('Consulta por Empenho — Transparência MG',14,12);
     doc.setFontSize(8);doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')} | ${dadosFiltradosConsulta.length} registros`,14,18);
-    const body=dadosFiltradosConsulta.slice(0,100).map(d=>[d.ano_empenho||'-',d.unidade_orcamentaria_codigo_nome||'-',d.numero_empenho||'-',formatarData(d.data_registro_doc_empenho),d.razao_social_credor||'-',d.elemento_despesa_codigo||'-',formatarMoeda(d.valor_despesa_empenhada),formatarMoeda(d.valor_despesa_liquidada),formatarMoeda(d.valor_pago_financeiro)]);
+    const body=dadosFiltradosConsulta.slice(0,100).map(d=>[d.ano_empenho||'-',d.unidade_orcamentaria_nome||'-',d.numero_empenho||'-',formatarData(d.data_registro_doc_empenho),d.razao_social_credor||'-',d.elemento_despesa_codigo||'-',formatarMoeda(d.valor_despesa_empenhada),formatarMoeda(d.valor_despesa_liquidada),formatarMoeda(d.valor_pago_financeiro)]);
     doc.autoTable({head:[['Ano','Unidade','Empenho','Data','Credor','Elemento','Empenhado','Liquidado','Pago']],body,startY:22,headStyles:{fillColor:[32,68,93]},styles:{fontSize:6}});
     doc.save('consulta_empenhos.pdf');
 };
@@ -2426,7 +2349,7 @@ window.exportarModalCSV = function() {
     const rows = [['Campo','Valor'],
         ['Nº Empenho',item.numero_empenho],['Ano',item.ano_empenho],
         ['Data Registro',formatarData(item.data_registro_doc_empenho)],
-        ['Órgão',item.unidade_orcamentaria_codigo_nome],
+        ['Órgão',item.unidade_orcamentaria_nome],
         ['Credor',item.razao_social_credor],['CNPJ/CPF',item.cnpj_cpf_credor_formatado],
         ['Elemento Despesa',item.elemento_despesa_codigo+' - '+(item.elemento_despesa_descricao||'')],
         ['Modalidade Licitação',item.licitacao_descricao_da_modalidade],
@@ -2450,7 +2373,7 @@ window.exportarModalPDF = function() {
     doc.autoTable({head:[['Campo','Valor']],body:[
         ['Nº Empenho',item.numero_empenho||'-'],['Ano',item.ano_empenho||'-'],
         ['Data Registro',formatarData(item.data_registro_doc_empenho)],
-        ['Órgão',item.unidade_orcamentaria_codigo_nome||'-'],['Credor',item.razao_social_credor||'-'],
+        ['Órgão',item.unidade_orcamentaria_nome||'-'],['Credor',item.razao_social_credor||'-'],
         ['CNPJ/CPF',item.cnpj_cpf_credor_formatado||'-'],
         ['Elemento',(item.elemento_despesa_codigo||'-')+' '+( item.elemento_despesa_descricao||'')],
         ['Modalidade',item.licitacao_descricao_da_modalidade||'-'],
@@ -2527,7 +2450,7 @@ window.verDetalhesItem = function(itemCod, siglaOuCod, processoCompra, numContra
                 <div class="col-md-2"><div class="info-label">Cód. Elemento</div><div class="info-value">${ref.elemento_despesa_codigo||'-'}</div></div>
                 <div class="col-md-2"><div class="info-label">Elemento Despesa</div><div class="info-value">${ref.elemento_despesa_descricao||'-'}</div></div>
                 <div class="col-md-1"><div class="info-label">Sigla</div><div class="info-value">${ref.unidade_orcamentaria_sigla||'-'}</div></div>
-                <div class="col-md-5"><div class="info-label">Órgão (Código e Nome)</div><div class="info-value">${ref.unidade_orcamentaria_codigo_nome||'-'}</div></div>
+                <div class="col-md-5"><div class="info-label">Órgão</div><div class="info-value">${ref.unidade_orcamentaria_nome||'-'}</div></div>
                 <div class="col-md-4"><div class="info-label">Modalidade de Licitação</div><div class="info-value">${ref.licitacao_descricao_da_modalidade||'-'}</div></div>
                 <div class="col-md-3"><div class="info-label">Qtd. Empenhos</div><div class="info-value">${empenhosDoItem.length.toLocaleString('pt-BR')}</div></div>
             </div>
@@ -2582,6 +2505,7 @@ window.verDetalhesItem = function(itemCod, siglaOuCod, processoCompra, numContra
     // Aba Empenhos - listagem simples sem pagamentos
     const totalEmpItem = empenhosDoItem.reduce((s,d)=>s+d.valor_despesa_empenhada,0);
     const totalLiqItem = empenhosDoItem.reduce((s,d)=>s+d.valor_despesa_liquidada,0);
+    const totalPagItem = empenhosDoItem.reduce((s,d)=>s+parsearValorMonetario(d.valor_pago_financeiro),0);
 
     const empenhosHtmlItem = empenhosDoItem.map((e, idx) => `
         <tr style="background:${idx%2===0?'#fff':'#f8fafd'};">
@@ -2591,6 +2515,7 @@ window.verDetalhesItem = function(itemCod, siglaOuCod, processoCompra, numContra
             <td style="padding:7px 9px;">${e.unidade_orcamentaria_sigla||'-'}</td>
             <td style="padding:7px 9px;text-align:right;color:#1a3a5c;font-weight:600;">${formatarMoeda(e.valor_despesa_empenhada)}</td>
             <td style="padding:7px 9px;text-align:right;color:#856404;">${formatarMoeda(e.valor_despesa_liquidada)}</td>
+            <td style="padding:7px 9px;text-align:right;color:#28a745;">${formatarMoeda(e.valor_pago_financeiro)}</td>
         </tr>`).join('');
 
     const labelItem = processoCompra
@@ -2606,6 +2531,7 @@ window.verDetalhesItem = function(itemCod, siglaOuCod, processoCompra, numContra
             <div style="display:flex;gap:20px;background:#f0f4f8;border-radius:6px;padding:8px 14px;margin-bottom:10px;font-size:12px;flex-wrap:wrap;">
                 <span>Total Empenhado: <strong style="color:#1a3a5c;">${formatarMoeda(totalEmpItem)}</strong></span>
                 <span>Total Liquidado: <strong style="color:#856404;">${formatarMoeda(totalLiqItem)}</strong></span>
+                <span>Total Pago: <strong style="color:#28a745;">${formatarMoeda(totalPagItem)}</strong></span>
             </div>
             <div style="border:1px solid #d0d9e4;border-radius:8px;overflow:hidden;">
                 <div style="overflow:auto;">
@@ -2617,12 +2543,14 @@ window.verDetalhesItem = function(itemCod, siglaOuCod, processoCompra, numContra
                             <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Sigla</th>
                             <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Empenhado</th>
                             <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Liquidado</th>
+                            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago</th>
                         </tr></thead>
                         <tbody>${empenhosHtmlItem}</tbody>
                         <tfoot><tr style="background:#dde3ea;font-weight:700;font-size:11px;">
                             <td colspan="4" style="padding:6px 9px;">TOTAL</td>
                             <td style="padding:6px 9px;text-align:right;color:#1a3a5c;">${formatarMoeda(totalEmpItem)}</td>
                             <td style="padding:6px 9px;text-align:right;color:#856404;">${formatarMoeda(totalLiqItem)}</td>
+                            <td style="padding:6px 9px;text-align:right;color:#28a745;">${formatarMoeda(totalPagItem)}</td>
                         </tr></tfoot>
                     </table>
                 </div>
@@ -2679,7 +2607,7 @@ window.atualizarDatalistsConsulta = function(anoSel) {
         if (el) el.innerHTML = vals.map(v=>`<option value="${v}">`).join('');
     };
     upd('consListSigla', [...new Set(dados.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort());
-    upd('consListUnidade', [...new Set(dados.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort());
+    upd('consListUnidade', [...new Set(dados.map(d=>d.unidade_orcamentaria_nome))].filter(Boolean).sort());
     upd('consListCredor', [...new Set(dados.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort().slice(0,300));
     upd('consListModalidade', [...new Set(dados.map(d=>d.licitacao_descricao_da_modalidade))].filter(Boolean).sort());
     upd('consListProcesso', [...new Set(dados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort().slice(0,200));
@@ -2697,7 +2625,7 @@ window.atualizarDatalistsItem = function(anoSel) {
         if (el) el.innerHTML = vals.map(v=>`<option value="${v}">`).join('');
     };
     upd('itemListSigla', [...new Set(dados.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort());
-    upd('itemListUnidade', [...new Set(dados.map(d=>d.unidade_orcamentaria_codigo_nome))].filter(Boolean).sort());
+    upd('itemListUnidade', [...new Set(dados.map(d=>d.unidade_orcamentaria_nome))].filter(Boolean).sort());
     upd('itemListCod', [...new Set(dados.map(d=>d.item_despesa_codigo))].filter(Boolean).sort());
     upd('itemListDesc', [...new Set(dados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort().slice(0,300));
     upd('itemListElem', [...new Set(dados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort());
