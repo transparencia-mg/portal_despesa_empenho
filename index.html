@@ -389,8 +389,8 @@ let empenhoAtualModal = null;
 
 let paginacaoVG = { atual: 1, total: 1, porPagina: 50 };
 let paginacaoConsulta = { atual: 1, total: 1, porPagina: 50 };
-let sortVG = { col: 'valor_pago_financeiro', dir: 'desc' };
-let sortConsulta = { col: 'numero_empenho', dir: 'desc' }; // multi: numero_empenho desc > data_registro desc > orgao asc
+let sortVG = { col: 'unidade_orcamentaria_nome', dir: 'asc' };
+let sortConsulta = { col: 'numero_empenho', dir: 'asc' }; // multi: numero_empenho asc > orgao asc (empenho 1 primeiro, depois 2, etc.)
 
 let colunasVisiveisConsulta = {
     ano_empenho: true,
@@ -525,14 +525,23 @@ function iframeUpdateHeight() {
 
 function _compararCampo(a, b, coluna, direcao) {
     const campos$ = ['valor_despesa_empenhada','valor_despesa_liquidada','valor_pago_financeiro','valor_pago_processado','valor_pago_nao_processado','valor_pago_rp'];
+    const camposInt = ['numero_empenho','unidade_orcamentaria_codigo'];
+    const camposStr = ['unidade_orcamentaria_nome','unidade_orcamentaria_sigla','razao_social_credor','elemento_despesa_descricao','item_despesa_descricao'];
     let va = a[coluna] !== undefined && a[coluna] !== null ? a[coluna] : '';
     let vb = b[coluna] !== undefined && b[coluna] !== null ? b[coluna] : '';
     if (campos$.includes(coluna)) {
         va = typeof va === 'number' ? va : parsearValorMonetario(va);
         vb = typeof vb === 'number' ? vb : parsearValorMonetario(vb);
+    } else if (camposInt.includes(coluna)) {
+        va = parseInt(va, 10) || 0;
+        vb = parseInt(vb, 10) || 0;
     } else {
-        va = String(va).toLowerCase();
-        vb = String(vb).toLowerCase();
+        // Para colunas de texto (incluindo nome/sigla do órgão), usa collation pt-BR
+        va = String(va);
+        vb = String(vb);
+        return direcao === 'asc'
+            ? va.localeCompare(vb, 'pt-BR', { sensitivity: 'base' })
+            : vb.localeCompare(va, 'pt-BR', { sensitivity: 'base' });
     }
     const r = va < vb ? -1 : va > vb ? 1 : 0;
     return direcao === 'asc' ? r : -r;
@@ -629,9 +638,10 @@ function consolidarEmpenho(emp) {
     const proc = emp['numero_processo_compra_siad'] ? String(emp['numero_processo_compra_siad']).trim() : null;
     const lic = proc ? (_licitacoesMap.get(proc) || _licitacoesMapNorm.get(normalizarChave(proc)) || null) : null;
     // Colunas: unidade_orcamentaria_codigo, unidade_orcamentaria_nome, unidade_orcamentaria_sigla
-    const uoCodigo = emp['unidade_orcamentaria_codigo'] || '';
-    const uoNome = emp['unidade_orcamentaria_nome'] || '';
-    const sigla = emp['unidade_orcamentaria_sigla'] || '';
+    // Fallback para variações de nome de coluna no CSV
+    const uoCodigo = emp['unidade_orcamentaria_codigo'] || emp['orgao_codigo']  || emp['codigo_orgao']  || emp['codigo_unidade_orcamentaria'] || '';
+    const uoNome   = emp['unidade_orcamentaria_nome']   || emp['orgao_nome']    || emp['nome_orgao']    || emp['nome_unidade_orcamentaria']   || emp['orgao'] || '';
+    const sigla    = emp['unidade_orcamentaria_sigla']  || emp['orgao_sigla']   || emp['sigla_orgao']   || emp['sigla_unidade_orcamentaria']  || emp['sigla'] || '';
     let anoVal = emp['ano_empenho'] ? formatarInteiro(emp['ano_empenho']) : '';
     const anoNum = parseInt(anoVal);
     if (!anoVal || isNaN(anoNum) || anoNum < 2000 || anoNum > 2100) anoVal = null;
@@ -713,13 +723,14 @@ function integrarDadosAno(dados, ano) {
             _licitacoesMapNorm.set(normalizarChave(chave), l);
         }
     });
-    // Atualiza orgãos - suporte às novas colunas
+    // Atualiza orgãos - suporte às novas colunas e fallback para variações de nome
     dados.orgaos.forEach(o => {
         // Novas colunas: unidade_orcamentaria_codigo, unidade_orcamentaria_nome, unidade_orcamentaria_sigla
-        const uoCodigo = o['unidade_orcamentaria_codigo'] || '';
-        const uoNome = o['unidade_orcamentaria_nome'] || '';
-        const sigla = o['unidade_orcamentaria_sigla'] || '';
-        const anoEx = o['ano_de_exercicio'] || String(ano);
+        // Fallback para variações: orgao_codigo, orgao_nome, orgao_sigla / sigla_orgao, nome_orgao etc.
+        const uoCodigo = o['unidade_orcamentaria_codigo'] || o['orgao_codigo'] || o['codigo_orgao'] || o['codigo_unidade_orcamentaria'] || '';
+        const uoNome   = o['unidade_orcamentaria_nome']   || o['orgao_nome']   || o['nome_orgao']   || o['nome_unidade_orcamentaria']   || o['orgao'] || '';
+        const sigla    = o['unidade_orcamentaria_sigla']  || o['orgao_sigla']  || o['sigla_orgao']  || o['sigla_unidade_orcamentaria']  || o['sigla'] || '';
+        const anoEx = o['ano_de_exercicio'] || o['ano_empenho'] || o['exercicio'] || String(ano);
         const oEnriquecido = { ...o, _ano_exercicio: String(anoEx), unidade_orcamentaria_codigo: uoCodigo, unidade_orcamentaria_nome: uoNome, unidade_orcamentaria_sigla: sigla };
         dadosOrgaoRaw.push(oEnriquecido);
     });
@@ -1220,7 +1231,7 @@ function renderizarConsultaEmpenho() {
             <div class="filter-group" style="flex:2;min-width:180px;">
                 <label class="filter-label">Credor</label>
                 <input type="text" class="form-control" id="consFiltroCredor" list="consListCredor" placeholder="Digite ou selecione...">
-                <datalist id="consListCredor">${credores.slice(0,300).map(c=>`<option value="${c}">`).join('')}</datalist>
+                <datalist id="consListCredor">${credores.map(c=>`<option value="${c}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:1;min-width:140px;">
                 <label class="filter-label">CNPJ/CPF Credor</label>
@@ -1237,12 +1248,12 @@ function renderizarConsultaEmpenho() {
             <div class="filter-group" style="flex:2;min-width:180px;">
                 <label class="filter-label">Processo Compra</label>
                 <input type="text" class="form-control" id="consFiltroProcesso" list="consListProcesso" placeholder="Nº Processo Compra...">
-                <datalist id="consListProcesso">${processos.slice(0,200).map(p=>`<option value="${p}">`).join('')}</datalist>
+                <datalist id="consListProcesso">${processos.map(p=>`<option value="${p}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:2;min-width:150px;">
                 <label class="filter-label">Contrato</label>
                 <input type="text" class="form-control" id="consFiltroContrato" list="consListContrato" placeholder="Nº contrato...">
-                <datalist id="consListContrato">${contratos.slice(0,200).map(c=>`<option value="${c}">`).join('')}</datalist>
+                <datalist id="consListContrato">${contratos.map(c=>`<option value="${c}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:3;min-width:200px;">
                 <label class="filter-label">Objeto</label>
@@ -1259,17 +1270,17 @@ function renderizarConsultaEmpenho() {
             <div class="filter-group" style="flex:2;min-width:150px;">
                 <label class="filter-label">Elemento Despesa</label>
                 <input type="text" class="form-control" id="consFiltroDescElemento" list="consListDescElemento" placeholder="Palavra-chave...">
-                <datalist id="consListDescElemento">${descsElem.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
+                <datalist id="consListDescElemento">${descsElem.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:1;min-width:120px;">
                 <label class="filter-label">Cód. Item Despesa</label>
                 <input type="text" class="form-control" id="consFiltroItemCod" list="consListItemCod" placeholder="Código...">
-                <datalist id="consListItemCod">${itens.slice(0,300).map(e=>`<option value="${e}">`).join('')}</datalist>
+                <datalist id="consListItemCod">${itens.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:2;min-width:150px;">
                 <label class="filter-label">Item Despesa</label>
                 <input type="text" class="form-control" id="consFiltroItemDesc" list="consListItemDesc" placeholder="Palavra-chave...">
-                <datalist id="consListItemDesc">${descsItem.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
+                <datalist id="consListItemDesc">${descsItem.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
         </div>
 
@@ -1310,8 +1321,7 @@ function renderizarConsultaEmpenho() {
     const anoMaisRecente = anos[0] || '2026';
     dadosFiltradosConsulta = dadosConsolidados.filter(d => d.ano_empenho == anoMaisRecente);
     dadosFiltradosConsulta = ordenarMulti(dadosFiltradosConsulta, [
-        { col: 'numero_empenho', dir: 'desc' },
-        { col: 'data_registro_doc_empenho', dir: 'desc' },
+        { col: 'numero_empenho', dir: 'asc' },
         { col: 'unidade_orcamentaria_nome', dir: 'asc' }
     ]);
     paginacaoConsulta.atual = 1;
@@ -1417,7 +1427,6 @@ function toggleSortConsulta(col) {
     else { sortConsulta.col=col; sortConsulta.dir='desc'; }
     dadosFiltradosConsulta=ordenarMulti(dadosFiltradosConsulta,[
         { col: sortConsulta.col, dir: sortConsulta.dir },
-        { col: 'data_registro_doc_empenho', dir: 'desc' },
         { col: 'unidade_orcamentaria_nome', dir: 'asc' }
     ]);
     paginacaoConsulta.atual=1; atualizarTabelaConsulta();
@@ -1458,7 +1467,6 @@ window.aplicarFiltrosConsultaInterno = function() {
     });
     dadosFiltradosConsulta = ordenarMulti(dadosFiltradosConsulta, [
         { col: sortConsulta.col, dir: sortConsulta.dir },
-        { col: 'data_registro_doc_empenho', dir: 'desc' },
         { col: 'unidade_orcamentaria_nome', dir: 'asc' }
     ]);
     paginacaoConsulta.atual = 1;
@@ -1475,8 +1483,7 @@ window.limparFiltrosConsulta = function() {
     });
     dadosFiltradosConsulta = dadosConsolidados.filter(d => d.ano_empenho == anoMaisRecente);
     dadosFiltradosConsulta = ordenarMulti(dadosFiltradosConsulta, [
-        { col: 'numero_empenho', dir: 'desc' },
-        { col: 'data_registro_doc_empenho', dir: 'desc' },
+        { col: 'numero_empenho', dir: 'asc' },
         { col: 'unidade_orcamentaria_nome', dir: 'asc' }
     ]);
     paginacaoConsulta.atual = 1;
@@ -1586,12 +1593,12 @@ function renderizarConsultaItem() {
             <div class="filter-group" style="flex:1;min-width:140px;">
                 <label class="filter-label">Processo Compra</label>
                 <input type="text" class="form-control" id="itemFiltroProcesso" list="itemListProcesso" placeholder="Nº Processo Compra...">
-                <datalist id="itemListProcesso">${processos.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
+                <datalist id="itemListProcesso">${processos.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:1;min-width:120px;">
                 <label class="filter-label">Contrato</label>
                 <input type="text" class="form-control" id="itemFiltroContrato" list="itemListContrato" placeholder="Nº contrato...">
-                <datalist id="itemListContrato">${contratos.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
+                <datalist id="itemListContrato">${contratos.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
             <div class="filter-group" style="flex:1;min-width:200px;">
                 <label class="filter-label" style="white-space:nowrap;">Cód. Elemento Despesa</label>
@@ -1601,7 +1608,7 @@ function renderizarConsultaItem() {
             <div class="filter-group" style="flex:3;min-width:140px;">
                 <label class="filter-label">Elemento Despesa</label>
                 <input type="text" class="form-control" id="itemFiltroDescElem" list="itemListDescElem" placeholder="Palavra-chave...">
-                <datalist id="itemListDescElem">${descsElem.slice(0,200).map(e=>`<option value="${e}">`).join('')}</datalist>
+                <datalist id="itemListDescElem">${descsElem.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
         </div>
         <!-- Linha 3: Cód. Item, Item -->
@@ -1614,7 +1621,7 @@ function renderizarConsultaItem() {
             <div class="filter-group" style="flex:3;min-width:200px;">
                 <label class="filter-label">Item Despesa</label>
                 <input type="text" class="form-control" id="itemFiltroDesc" list="itemListDesc" placeholder="Palavra-chave...">
-                <datalist id="itemListDesc">${descsItem.slice(0,300).map(e=>`<option value="${e}">`).join('')}</datalist>
+                <datalist id="itemListDesc">${descsItem.map(e=>`<option value="${e}">`).join('')}</datalist>
             </div>
         </div>
         <div class="botoes-abaixo">
@@ -1959,24 +1966,74 @@ window.verDetalhesEmpenho = function(numEmpenho, siglaOuCod, codigoNome) {
     // Empenhos relacionados (outros, excluindo o atual)
     const outrosEmpenhos = empenhosRelacionados.filter(d => String(d.numero_empenho) !== String(item.numero_empenho));
 
-    // Monta linhas da tabela de todos os empenhos (atual em destaque + outros)
-    function montarLinhaEmpenho(e, destaque) {
-        const bg = destaque ? '#eaf0fa' : '';
-        const fontWeight = destaque ? '700' : '400';
-        return `<tr style="background:${bg};">
-            <td style="padding:6px 9px;font-weight:${fontWeight};color:#1a3a5c;white-space:nowrap;">${destaque ? `<i class="material-icons" style="font-size:12px;vertical-align:middle;color:#1a3a5c;">star</i> ` : ''}${e.numero_empenho||'-'}</td>
-            <td style="padding:6px 9px;white-space:nowrap;">${formatarData(e.data_registro_doc_empenho)}</td>
-            <td style="padding:6px 9px;white-space:nowrap;color:#555;">${e.ano_empenho||'-'}</td>
-            <td style="padding:6px 9px;text-align:right;color:#1a3a5c;font-weight:600;">${formatarMoeda(e.valor_despesa_empenhada)}</td>
-            <td style="padding:6px 9px;text-align:right;color:#856404;">${formatarMoeda(e.valor_despesa_liquidada)}</td>
-            <td style="padding:6px 9px;text-align:right;color:#28a745;">${formatarMoeda(e.valor_pago_financeiro)}</td>
-        </tr>`;
-    }
-
     // Monta HTML da aba
     const headerInfo = item.numero_processo_compra_siad
         ? `<span style="font-size:11px;opacity:0.85;">Processo: <strong>${item.numero_processo_compra_siad}</strong>${item._lic_numero_contrato ? ` &nbsp;|&nbsp; Contrato: <strong>${item._lic_numero_contrato}</strong>` : ''} &nbsp;|&nbsp; Órgão: <strong>${item.unidade_orcamentaria_sigla||item.unidade_orcamentaria_nome||'-'}</strong> &nbsp;|&nbsp; Credor: <strong>${item.razao_social_credor||'-'}</strong></span>`
         : '';
+
+    // Organiza empenhos: empenho atual (destaque) + outros 2026 + outros anos (separados)
+    function montarTabelaEmpenhosPorAno(empAtual, outrosLista) {
+        const anoAtual = String(empAtual.ano_empenho || '2026');
+        // Separa outros em: mesmo ano do atual e anos diferentes
+        const mesmosAno = outrosLista.filter(e => String(e.ano_empenho) === anoAtual);
+        const outrosAnos = outrosLista.filter(e => String(e.ano_empenho) !== anoAtual);
+        // Agrupa outros anos por ano, desc
+        const porAno = {};
+        outrosAnos.forEach(e => {
+            const a = String(e.ano_empenho || '-');
+            if (!porAno[a]) porAno[a] = [];
+            porAno[a].push(e);
+        });
+        const anosOrdenados = Object.keys(porAno).sort((a,b) => Number(b)-Number(a));
+
+        const theadRow = `<thead><tr>
+            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Nº Empenho</th>
+            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Data</th>
+            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Ano</th>
+            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Empenhado</th>
+            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Liquidado</th>
+            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Valor Pago (Fin.)</th>
+        </tr></thead>`;
+
+        function linhaEmpenho(e, destaque) {
+            const bg = destaque ? '#eaf0fa' : '';
+            const fw = destaque ? '700' : '400';
+            return `<tr style="background:${bg};">
+                <td style="padding:6px 9px;font-weight:${fw};color:#1a3a5c;white-space:nowrap;">${destaque ? `<i class="material-icons" style="font-size:12px;vertical-align:middle;color:#1a3a5c;">star</i> ` : ''}${e.numero_empenho||'-'}</td>
+                <td style="padding:6px 9px;white-space:nowrap;">${formatarData(e.data_registro_doc_empenho)}</td>
+                <td style="padding:6px 9px;white-space:nowrap;color:#555;">${e.ano_empenho||'-'}</td>
+                <td style="padding:6px 9px;text-align:right;color:#1a3a5c;font-weight:600;">${formatarMoeda(e.valor_despesa_empenhada)}</td>
+                <td style="padding:6px 9px;text-align:right;color:#856404;">${formatarMoeda(e.valor_despesa_liquidada)}</td>
+                <td style="padding:6px 9px;text-align:right;color:#28a745;">${formatarMoeda(parsearValorMonetario(e.valor_pago_financeiro))}</td>
+            </tr>`;
+        }
+
+        function separadorAno(ano) {
+            return `<tr><td colspan="6" style="background:#f0f4f8;padding:5px 10px;font-size:10px;font-weight:700;color:#54697b;text-transform:uppercase;letter-spacing:0.5px;border-top:2px solid #cdd6de;">
+                <i class="material-icons" style="font-size:11px;vertical-align:middle;">calendar_today</i> Empenhos de exercícios anteriores — Ano ${ano}
+            </td></tr>`;
+        }
+
+        let corpo = '';
+        // Empenho atual (destaque)
+        corpo += linhaEmpenho(empAtual, true);
+        // Outros do mesmo ano
+        mesmosAno.forEach(e => { corpo += linhaEmpenho(e, false); });
+        // Outros anos, agrupados com separador
+        anosOrdenados.forEach(ano => {
+            corpo += separadorAno(ano);
+            porAno[ano].forEach(e => { corpo += linhaEmpenho(e, false); });
+        });
+
+        return `<table style="width:100%;border-collapse:collapse;font-size:12px;">${theadRow}<tbody>${corpo}</tbody>
+            <tfoot><tr style="background:#dde3ea;font-weight:700;font-size:11px;">
+                <td colspan="3" style="padding:6px 9px;">TOTAL GERAL</td>
+                <td style="padding:6px 9px;text-align:right;color:#1a3a5c;">${formatarMoeda(totalEmp)}</td>
+                <td style="padding:6px 9px;text-align:right;color:#856404;">${formatarMoeda(totalLiq)}</td>
+                <td style="padding:6px 9px;text-align:right;color:#28a745;">${formatarMoeda(totalPag)}</td>
+            </tr></tfoot>
+        </table>`;
+    }
 
     document.getElementById('modalContentEmpenhos').innerHTML = item.numero_processo_compra_siad ? `
         <!-- Cabeçalho da aba -->
@@ -1991,30 +2048,13 @@ window.verDetalhesEmpenho = function(numEmpenho, siglaOuCod, codigoNome) {
             <span><i class="material-icons" style="font-size:13px;vertical-align:middle;color:#1a3a5c;">receipt</i> ${empenhosRelacionados.length} empenho(s)</span>
             <span>Empenhado: <strong style="color:#1a3a5c;">${formatarMoeda(totalEmp)}</strong></span>
             <span>Liquidado: <strong style="color:#856404;">${formatarMoeda(totalLiq)}</strong></span>
-            <span>Pago: <strong style="color:#28a745;">${formatarMoeda(totalPag)}</strong></span>
+            <span>Valor Pago (Fin.): <strong style="color:#28a745;">${formatarMoeda(totalPag)}</strong></span>
         </div>
 
         <!-- Tabela de todos os empenhos -->
         <div style="border:1px solid #d0d9e4;border-radius:8px;overflow:hidden;">
             <div style="overflow:auto;">
-                <table style="width:100%;border-collapse:collapse;font-size:12px;">
-                    <thead><tr>
-                        <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Nº Empenho</th>
-                        <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Data</th>
-                        <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Ano</th>
-                        <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Empenhado</th>
-                        <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Liquidado</th>
-                    </tr></thead>
-                    <tbody>
-                        ${montarLinhaEmpenho(item, true)}
-                        ${outrosEmpenhos.map(e => montarLinhaEmpenho(e, false)).join('')}
-                    </tbody>
-                    <tfoot><tr style="background:#dde3ea;font-weight:700;font-size:11px;">
-                        <td colspan="3" style="padding:6px 9px;">TOTAL</td>
-                        <td style="padding:6px 9px;text-align:right;color:#1a3a5c;">${formatarMoeda(totalEmp)}</td>
-                        <td style="padding:6px 9px;text-align:right;color:#856404;">${formatarMoeda(totalLiq)}</td>
-                    </tr></tfoot>
-                </table>
+                ${montarTabelaEmpenhosPorAno(item, outrosEmpenhos)}
             </div>
         </div>
     ` : `<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:16px;font-size:13px;color:#795548;text-align:center;"><i class="material-icons" style="font-size:36px;display:block;margin-bottom:8px;color:#ffc107;">info</i>Este empenho não possui processo de compra vinculado, portanto não é possível listar empenhos relacionados.</div>`;
@@ -2507,16 +2547,38 @@ window.verDetalhesItem = function(itemCod, siglaOuCod, processoCompra, numContra
     const totalLiqItem = empenhosDoItem.reduce((s,d)=>s+d.valor_despesa_liquidada,0);
     const totalPagItem = empenhosDoItem.reduce((s,d)=>s+parsearValorMonetario(d.valor_pago_financeiro),0);
 
-    const empenhosHtmlItem = empenhosDoItem.map((e, idx) => `
-        <tr style="background:${idx%2===0?'#fff':'#f8fafd'};">
+    // Agrupa empenhos do item por ano: 2026 (ou ano mais recente) primeiro, depois anos anteriores com separador
+    const anosItem = [...new Set(empenhosDoItem.map(e=>String(e.ano_empenho||'-')))].sort((a,b)=>Number(b)-Number(a));
+    const anoRecenteItem = anosItem[0] || '2026';
+    const porAnoItem = {};
+    empenhosDoItem.forEach(e => {
+        const a = String(e.ano_empenho||'-');
+        if (!porAnoItem[a]) porAnoItem[a] = [];
+        porAnoItem[a].push(e);
+    });
+
+    function linhaItemEmpenho(e, idx) {
+        return `<tr style="background:${idx%2===0?'#fff':'#f8fafd'};">
             <td style="padding:7px 9px;font-weight:600;color:#1a3a5c;white-space:nowrap;">${e.numero_empenho||'-'}</td>
             <td style="padding:7px 9px;white-space:nowrap;">${formatarData(e.data_registro_doc_empenho)}</td>
             <td style="padding:7px 9px;white-space:nowrap;">${e.ano_empenho||'-'}</td>
             <td style="padding:7px 9px;">${e.unidade_orcamentaria_sigla||'-'}</td>
             <td style="padding:7px 9px;text-align:right;color:#1a3a5c;font-weight:600;">${formatarMoeda(e.valor_despesa_empenhada)}</td>
             <td style="padding:7px 9px;text-align:right;color:#856404;">${formatarMoeda(e.valor_despesa_liquidada)}</td>
-            <td style="padding:7px 9px;text-align:right;color:#28a745;">${formatarMoeda(e.valor_pago_financeiro)}</td>
-        </tr>`).join('');
+            <td style="padding:7px 9px;text-align:right;color:#28a745;">${formatarMoeda(parsearValorMonetario(e.valor_pago_financeiro))}</td>
+        </tr>`;
+    }
+
+    let empenhosHtmlItem = '';
+    let idxGlobal = 0;
+    anosItem.forEach((ano, iAno) => {
+        if (iAno > 0) {
+            empenhosHtmlItem += `<tr><td colspan="7" style="background:#f0f4f8;padding:5px 10px;font-size:10px;font-weight:700;color:#54697b;text-transform:uppercase;letter-spacing:0.5px;border-top:2px solid #cdd6de;">
+                <i class="material-icons" style="font-size:11px;vertical-align:middle;">calendar_today</i> Empenhos de exercícios anteriores — Ano ${ano}
+            </td></tr>`;
+        }
+        porAnoItem[ano].forEach(e => { empenhosHtmlItem += linhaItemEmpenho(e, idxGlobal++); });
+    });
 
     const labelItem = processoCompra
         ? (numContrato ? `Empenhos — Item <strong>${itemCod}</strong> / Processo <strong>${processoCompra}</strong> / Contrato <strong>${numContrato}</strong>` : `Empenhos — Item <strong>${itemCod}</strong> / Processo <strong>${processoCompra}</strong>`)
@@ -2531,7 +2593,7 @@ window.verDetalhesItem = function(itemCod, siglaOuCod, processoCompra, numContra
             <div style="display:flex;gap:20px;background:#f0f4f8;border-radius:6px;padding:8px 14px;margin-bottom:10px;font-size:12px;flex-wrap:wrap;">
                 <span>Total Empenhado: <strong style="color:#1a3a5c;">${formatarMoeda(totalEmpItem)}</strong></span>
                 <span>Total Liquidado: <strong style="color:#856404;">${formatarMoeda(totalLiqItem)}</strong></span>
-                <span>Total Pago: <strong style="color:#28a745;">${formatarMoeda(totalPagItem)}</strong></span>
+                <span>Total Valor Pago (Fin.): <strong style="color:#28a745;">${formatarMoeda(totalPagItem)}</strong></span>
             </div>
             <div style="border:1px solid #d0d9e4;border-radius:8px;overflow:hidden;">
                 <div style="overflow:auto;">
@@ -2543,7 +2605,7 @@ window.verDetalhesItem = function(itemCod, siglaOuCod, processoCompra, numContra
                             <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0;">Sigla</th>
                             <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Empenhado</th>
                             <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Liquidado</th>
-                            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Pago</th>
+                            <th style="background:#54697b;color:white;padding:7px 9px;font-size:10px;text-transform:uppercase;text-align:right;white-space:nowrap;position:sticky;top:0;">Valor Pago (Fin.)</th>
                         </tr></thead>
                         <tbody>${empenhosHtmlItem}</tbody>
                         <tfoot><tr style="background:#dde3ea;font-weight:700;font-size:11px;">
@@ -2608,14 +2670,14 @@ window.atualizarDatalistsConsulta = function(anoSel) {
     };
     upd('consListSigla', [...new Set(dados.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort());
     upd('consListUnidade', [...new Set(dados.map(d=>d.unidade_orcamentaria_nome))].filter(Boolean).sort());
-    upd('consListCredor', [...new Set(dados.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort().slice(0,300));
+    upd('consListCredor', [...new Set(dados.map(d=>d.razao_social_credor))].filter(c=>c&&c!=='Não informado').sort());
     upd('consListModalidade', [...new Set(dados.map(d=>d.licitacao_descricao_da_modalidade))].filter(Boolean).sort());
-    upd('consListProcesso', [...new Set(dados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort().slice(0,200));
-    upd('consListContrato', [...new Set(dados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort().slice(0,200));
+    upd('consListProcesso', [...new Set(dados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort());
+    upd('consListContrato', [...new Set(dados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort());
     upd('consListElemento', [...new Set(dados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort());
-    upd('consListDescElemento', [...new Set(dados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort().slice(0,200));
-    upd('consListItemCod', [...new Set(dados.map(d=>d.item_despesa_codigo))].filter(Boolean).sort().slice(0,300));
-    upd('consListItemDesc', [...new Set(dados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort().slice(0,200));
+    upd('consListDescElemento', [...new Set(dados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort());
+    upd('consListItemCod', [...new Set(dados.map(d=>d.item_despesa_codigo))].filter(Boolean).sort());
+    upd('consListItemDesc', [...new Set(dados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort());
 };
 
 window.atualizarDatalistsItem = function(anoSel) {
@@ -2627,11 +2689,11 @@ window.atualizarDatalistsItem = function(anoSel) {
     upd('itemListSigla', [...new Set(dados.map(d=>d.unidade_orcamentaria_sigla))].filter(Boolean).sort());
     upd('itemListUnidade', [...new Set(dados.map(d=>d.unidade_orcamentaria_nome))].filter(Boolean).sort());
     upd('itemListCod', [...new Set(dados.map(d=>d.item_despesa_codigo))].filter(Boolean).sort());
-    upd('itemListDesc', [...new Set(dados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort().slice(0,300));
+    upd('itemListDesc', [...new Set(dados.map(d=>d.item_despesa_descricao))].filter(Boolean).sort());
     upd('itemListElem', [...new Set(dados.map(d=>d.elemento_despesa_codigo))].filter(Boolean).sort());
-    upd('itemListDescElem', [...new Set(dados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort().slice(0,200));
-    upd('itemListProcesso', [...new Set(dados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort().slice(0,200));
-    upd('itemListContrato', [...new Set(dados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort().slice(0,200));
+    upd('itemListDescElem', [...new Set(dados.map(d=>d.elemento_despesa_descricao))].filter(Boolean).sort());
+    upd('itemListProcesso', [...new Set(dados.map(d=>d.numero_processo_compra_siad))].filter(Boolean).sort());
+    upd('itemListContrato', [...new Set(dados.map(d=>d._lic_numero_contrato))].filter(Boolean).sort());
 };
 </script>
 </body>
