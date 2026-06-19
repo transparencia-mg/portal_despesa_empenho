@@ -1168,6 +1168,14 @@ function renderizarConsultaEmpenho() {
     // e reaplicar filtros ativos — não reconstrói o HTML (preserva filtros do usuário)
     const jaRenderizado = !!document.getElementById('consFiltroAno');
     if (jaRenderizado) {
+        // Atualiza as opções do select de ano com todos os anos já carregados
+        const selectAno = document.getElementById('consFiltroAno');
+        if (selectAno) {
+            const anoSelecionado = selectAno.value;
+            const anosAtuais = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
+            selectAno.innerHTML = `<option value="">Todos</option>` +
+                anosAtuais.map(a => `<option value="${a}" ${a == anoSelecionado ? 'selected' : ''}>${a}</option>`).join('');
+        }
         // Atualiza os datalists com os novos dados carregados em background
         const anoAtual = document.getElementById('consFiltroAno')?.value || '';
         atualizarDatalistsConsulta(anoAtual);
@@ -1553,6 +1561,22 @@ let paginacaoItem = { atual: 1, total: 1, porPagina: 50 };
 function renderizarConsultaItem() {
     const container = document.getElementById('consulta-item-content');
     if (!container) return;
+
+    // Se o container já foi renderizado, só atualiza select de ano e datalists
+    const jaRenderizadoItem = !!document.getElementById('itemFiltroAno');
+    if (jaRenderizadoItem) {
+        const selectAnoItem = document.getElementById('itemFiltroAno');
+        if (selectAnoItem) {
+            const anoSelecionadoItem = selectAnoItem.value;
+            const anosAtuaisItem = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
+            selectAnoItem.innerHTML = '<option value="">Todos</option>' +
+                anosAtuaisItem.map(a => '<option value="'+a+'"'+(a == anoSelecionadoItem ? ' selected' : '')+'>'+a+'</option>').join('');
+        }
+        const anoAtualItem = document.getElementById('itemFiltroAno')?.value || '';
+        atualizarDatalistsItem(anoAtualItem);
+        aplicarFiltrosItemInterno();
+        return;
+    }
 
     const anos = [...new Set(dadosConsolidados.map(d=>d.ano_empenho))].filter(Boolean).sort((a,b)=>b-a);
     const _anoInicialItem = anos[0] || '2026';
