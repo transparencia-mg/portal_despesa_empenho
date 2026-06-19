@@ -4,7 +4,7 @@ Os dados são organizados em arquivos anuais e seguem um padrão estruturado, fa
 
 Periodicidade de Atualização: Semanal
 
-Dados a partir de 2022
+Dados disponíveis a partir de 2022.
 
 Dados históricos disponíves em: [(https://dados.mg.gov.br/dataset/despesa)]
 
