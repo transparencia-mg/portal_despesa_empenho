@@ -1,6 +1,6 @@
 {
   "version": "4.16.6",
-  "time": 9.813,
+  "time": 9.982,
   "errors": [],
   "tasks": [
     {
@@ -97,13 +97,13 @@
         "scheme": "file",
         "title": "Empenho 2022",
         "stats": {
-          "hash": "35bb0ceece9e47b51073c77272963a01",
-          "bytes": 14619497,
+          "hash": "687e243e94f7071ca9e2e5498df8179a",
+          "bytes": 14617313,
           "fields": 19,
           "rows": 50835
         }
       },
-      "time": 2.308,
+      "time": 2.313,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -225,13 +225,13 @@
         "scheme": "file",
         "title": "Empenho 2023",
         "stats": {
-          "hash": "9bdf2afe9dc9bc2ea9fb679024c92a7a",
-          "bytes": 14303017,
+          "hash": "0b2f6339497807a1698ff4e1dec560a8",
+          "bytes": 14301483,
           "fields": 19,
           "rows": 46050
         }
       },
-      "time": 2.06,
+      "time": 2.109,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -353,13 +353,13 @@
         "scheme": "file",
         "title": "Empenho 2024",
         "stats": {
-          "hash": "828d66cdb89824c0b4daa1ff9919bd55",
-          "bytes": 14316847,
+          "hash": "150e1189f57d753ce5f3bbe940ac4176",
+          "bytes": 14315273,
           "fields": 19,
           "rows": 46006
         }
       },
-      "time": 2.108,
+      "time": 2.133,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -481,13 +481,13 @@
         "scheme": "file",
         "title": "Empenho 2025",
         "stats": {
-          "hash": "9ca010dd5d944ef733761693afb3044c",
-          "bytes": 14078061,
+          "hash": "a4730bd652d504a3abbaf4fa2846a113",
+          "bytes": 14076593,
           "fields": 19,
           "rows": 45361
         }
       },
-      "time": 2.076,
+      "time": 2.09,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -609,13 +609,13 @@
         "scheme": "file",
         "title": "Empenho 2026",
         "stats": {
-          "hash": "899a365724e61e3d3a15d55c7eb476f6",
-          "bytes": 7330633,
+          "hash": "6f43680c969a7e83e1429b00c49723b7",
+          "bytes": 7787757,
           "fields": 19,
-          "rows": 23198
+          "rows": 24668
         }
       },
-      "time": 1.068,
+      "time": 1.141,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -1069,8 +1069,8 @@
         "scheme": "file",
         "title": "Órgão 2026",
         "stats": {
-          "hash": "aed7e96631f0fe9adf79353f09966086",
-          "bytes": 9738,
+          "hash": "04fe87c95dbedeaf18e1dc38c3ba350e",
+          "bytes": 9746,
           "fields": 10,
           "rows": 74
         }
