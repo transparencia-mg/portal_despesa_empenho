@@ -1,11 +1,10 @@
 {
   "version": "4.16.6",
-  "time": 7.132,
+  "time": 5.088,
   "errors": [],
   "tasks": [
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -108,7 +107,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Empenho 2022",
         "stats": {
           "hash": "",
           "bytes": 0,
@@ -116,7 +115,7 @@
           "rows": 0
         }
       },
-      "time": 0.091,
+      "time": 0.063,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -42147,7 +42146,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -42250,7 +42248,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Empenho 2023",
         "stats": {
           "hash": "43f70ab49ee4556a8b51a32f8ca429d5",
           "bytes": 21046092,
@@ -42258,7 +42256,7 @@
           "rows": 63979
         }
       },
-      "time": 2.297,
+      "time": 1.629,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -42288,7 +42286,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -42391,7 +42388,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Empenho 2024",
         "stats": {
           "hash": "ee6066f689df89a142c518c38e10d0cc",
           "bytes": 21280401,
@@ -42399,7 +42396,7 @@
           "rows": 61684
         }
       },
-      "time": 2.212,
+      "time": 1.596,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -42429,7 +42426,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -42532,7 +42528,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Empenho 2025",
         "stats": {
           "hash": "30ea20b20a7ffa535bc39e0a6c1f4a59",
           "bytes": 22634898,
@@ -42540,7 +42536,7 @@
           "rows": 63178
         }
       },
-      "time": 2.296,
+      "time": 1.63,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -42570,7 +42566,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -42673,7 +42668,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Empenho 2026",
         "stats": {
           "hash": "",
           "bytes": 0,
@@ -42681,7 +42676,7 @@
           "rows": 0
         }
       },
-      "time": 0.073,
+      "time": 0.055,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -84712,7 +84707,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -84763,7 +84757,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Órgão 2022",
         "stats": {
           "hash": "692b5b0c8209d5e837fd37bddd0f0bc2",
           "bytes": 9668,
@@ -84771,7 +84765,7 @@
           "rows": 83
         }
       },
-      "time": 0.014,
+      "time": 0.009,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -84801,7 +84795,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -84852,7 +84845,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Órgão 2023",
         "stats": {
           "hash": "e509b11cb0a6e479b2f43f9d4c753416",
           "bytes": 9988,
@@ -84860,7 +84853,7 @@
           "rows": 85
         }
       },
-      "time": 0.012,
+      "time": 0.009,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -84890,7 +84883,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -84941,7 +84933,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Órgão 2024",
         "stats": {
           "hash": "d156ccc6b63cd1d55f87a3702ca95133",
           "bytes": 10149,
@@ -84949,7 +84941,7 @@
           "rows": 86
         }
       },
-      "time": 0.012,
+      "time": 0.009,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -84979,7 +84971,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -85030,7 +85021,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Órgão 2025",
         "stats": {
           "hash": "0aaa28d30e37083922748f93c5be2a15",
           "bytes": 10277,
@@ -85038,7 +85029,7 @@
           "rows": 87
         }
       },
-      "time": 0.012,
+      "time": 0.009,
       "scope": [
         "hash-count-error",
         "byte-count-error",
@@ -85068,7 +85059,6 @@
     },
     {
       "resource": {
-        "description": "Insira a descrição/explicação detalhada deste recurso.",
         "dialect": {
           "delimiter": ";"
         },
@@ -85119,7 +85109,7 @@
           ]
         },
         "scheme": "file",
-        "title": "Insira um título humanamente legível para este recurso.",
+        "title": "Órgão 2026",
         "stats": {
           "hash": "85a943b0652f2f01168ea2a319da6e93",
           "bytes": 10369,
@@ -85127,7 +85117,7 @@
           "rows": 89
         }
       },
-      "time": 0.012,
+      "time": 0.009,
       "scope": [
         "hash-count-error",
         "byte-count-error",
