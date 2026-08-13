@@ -77,7 +77,7 @@ for ano in anos:
         header=1
     )
 
-    for aba in ["orgão", "empenho"]:
+    for aba in ["orgao", "empenho"]:
 
         if aba not in abas:
             print(f"Aba '{aba}' não encontrada em {arquivo.name}")
@@ -127,7 +127,7 @@ if arquivos_gerados > 0:
     if resultado.stdout.strip():
 
         subprocess.run(
-            ["git", "add", "upload"],
+            ["git", "add", "."],
             cwd=REPO,
             check=True
         )
