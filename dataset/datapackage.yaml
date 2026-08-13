@@ -2,8 +2,7 @@ name: portal_despesa_empenho
 owner_org: controladoria-geral-do-estado-cge
 profile: data-package
 resources:
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -58,9 +57,8 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Empenho 2022
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -115,9 +113,8 @@ resources:
         - name: valor_pago_rp
           type: any
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Empenho 2023
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -172,9 +169,8 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Empenho 2024
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -229,9 +225,8 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Empenho 2025
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -286,9 +281,8 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Empenho 2026
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -317,9 +311,8 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Órgão 2022
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -348,9 +341,8 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Órgão 2023
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -379,9 +371,8 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Órgão 2024
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -410,9 +401,8 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-  - description: Insira a descrição/explicação detalhada deste recurso.
-    dialect:
+    title: Órgão 2025
+  - dialect:
       delimiter: ;
     encoding: utf-8-sig
     format: csv
@@ -441,5 +431,5 @@ resources:
         - name: valor_pago_rp
           type: string
     scheme: file
-    title: Insira um título humanamente legível para este recurso.
-title: Portal_despesa_empenho
+    title: Órgão 2026
+title: Despesa por Empenho
